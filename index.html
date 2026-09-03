@@ -1572,15 +1572,15 @@ function montarApp(){
   }
 
   async function coletarLinhas(operadores, inicio, fim) {
-    let linhas = [];
-    for (const op of operadores) {
-      linhas = linhas.concat(await buscarLinhas(op, inicio, fim));
-    }
-    return linhas;
+    // Busca só por período (o Firestore já sabe indexar isso sozinho, sem
+    // precisar de índice composto manual) e filtra por operador aqui mesmo —
+    // evita depender de configuração extra no Firebase.
+    const todas = await buscarLinhasPeriodo(inicio, fim);
+    return todas.filter(l => operadores.includes(l.operador));
   }
 
-  async function buscarLinhas(operador, inicio, fim) {
-    const clausulas = [where('operador', '==', operador)];
+  async function buscarLinhasPeriodo(inicio, fim) {
+    const clausulas = [];
     if (inicio) clausulas.push(where('data', '>=', inicio));
     if (fim) clausulas.push(where('data', '<=', fim));
     clausulas.push(orderBy('data'));

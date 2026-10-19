@@ -743,6 +743,31 @@ function montarApp(){
     return `${pad(h)}:${pad(m)}:${pad(sec)}`;
   }
 
+  // Tempo de uma parada "a verificar" que foi aprovado como trabalhado.
+  // Nunca passa do tamanho real da parada (se um reimport encurtar o
+  // intervalo, o valor salvo é cortado no novo máximo).
+  function tempoJustificadoDoItem(v) {
+    const rev = v && v.revisao;
+    if (!rev || rev.status !== 'aprovado') return 0;
+    const t = Math.max(0, Number(rev.tempoJustificadoSeg) || 0);
+    return Math.min(t, Math.max(0, Number(v.tempoMovSeg) || 0));
+  }
+
+  function tempoJustificadoTotal(linha) {
+    return (linha.verificarList || []).reduce((a, v) => a + tempoJustificadoDoItem(v), 0);
+  }
+
+  // Aceita "hh:mm:ss", "mm:ss" ou só minutos ("34"). Devolve segundos ou null.
+  function parseDuracao(txt) {
+    const s = (txt || '').toString().trim().replace(',', '.');
+    if (!s) return null;
+    if (/^\d+(\.\d+)?$/.test(s)) return Math.round(Number(s) * 60);
+    const partes = s.split(':');
+    if (partes.length < 2 || partes.length > 3 || partes.some(p => !/^\d+$/.test(p))) return null;
+    const n = partes.map(Number);
+    return partes.length === 3 ? n[0] * 3600 + n[1] * 60 + n[2] : n[0] * 60 + n[1];
+  }
+
   function formatPct(v) {
     if (v === null || v === undefined || isNaN(v)) return '–';
     return (v * 100).toFixed(1).replace('.', ',') + '%';
@@ -811,7 +836,14 @@ function montarApp(){
     $$('[data-tab]').forEach(b => b.classList.toggle('active', b.dataset.tab === nome));
     $$('.tab-panel').forEach(p => p.classList.add('hidden'));
     $('#painel-' + nome).classList.remove('hidden');
-    if (nome === 'dashboard') popularSelectOperadorDashboard();
+    if (nome === 'dashboard') {
+      popularSelectOperadorDashboard();
+      // uma revisão aprovada em outra aba muda as horas trabalhadas daqui
+      if (dashboardPrecisaRerender && linhasDashboardAtuais.length) {
+        dashboardPrecisaRerender = false;
+        renderDashboard(linhasDashboardAtuais, comparativoAtual);
+      }
+    }
     if (nome === 'tempo-real') abrirTempoReal();
     if (nome === 'cadastro') renderCadastro();
     if (nome === 'config') renderConfig();
@@ -1207,6 +1239,14 @@ function montarApp(){
     }) || null;
   }
 
+  // Segundos em comum entre o intervalo [a, b] e uma janela de hora. Testa a
+  // janela também deslocada ±1 dia, pra pegar paradas que cruzam a meia-noite
+  // e a janela 23:00–00:04.
+  function sobreposicaoComJanela(a, b, w) {
+    const ov = (i, f) => Math.max(0, Math.min(b, f) - Math.max(a, i));
+    return ov(w.inicio, w.fim) + ov(w.inicio - 86400, w.fim - 86400) + ov(w.inicio + 86400, w.fim + 86400);
+  }
+
   function hojeOperacionalISO() {
     const agora = new Date();
     const dataISO = `${agora.getFullYear()}-${pad(agora.getMonth() + 1)}-${pad(agora.getDate())}`;
@@ -1222,7 +1262,12 @@ function montarApp(){
   $('#btn-atualizar-tr').addEventListener('click', () => renderTempoReal());
 
   $('#tabela-tr').addEventListener('click', (e) => {
-    if (e.target.closest('[data-abrir-verificar-tr]') && linhaTRAtual) abrirModalVerificar(linhaTRAtual);
+    const btn = e.target.closest('[data-abrir-verificar-tr]');
+    if (!btn || !linhaTRAtual) return;
+    const bucket = BUCKETS_HORARIOS[Number(btn.dataset.abrirVerificarTr)];
+    if (!bucket) return;
+    // abre só as paradas que terminaram dentro dessa janela de hora
+    abrirModalVerificar(linhaTRAtual, { label: bucket.label, fn: v => bucketDaHora(v.hora) === bucket });
   });
 
   function abrirTempoReal() {
@@ -1295,6 +1340,36 @@ function montarApp(){
         porBucket.set(bucket, h);
       }
 
+      // Revisões das paradas. A contagem (pendente/aprovado/reprovado) fica na
+      // janela em que a parada terminou. Já o tempo aprovado é espalhado pelas
+      // janelas que a parada realmente cobriu, proporcionalmente — uma parada
+      // de 11:09 a 12:30 com 60 min aprovados não pode jogar tudo em 12:20–13:20
+      // (daria mais de 60 min trabalhados numa hora só).
+      const revisoesPorBucket = new Map();
+      const justificadoPorBucket = new Map();
+      for (const v of linhaTRAtual.verificarList) {
+        const bucketFim = bucketDaHora(v.hora);
+        if (bucketFim) {
+          const r = revisoesPorBucket.get(bucketFim) || { aprovados: 0, reprovados: 0 };
+          if (v.revisao?.status === 'aprovado') r.aprovados++;
+          else if (v.revisao?.status === 'reprovado') r.reprovados++;
+          revisoesPorBucket.set(bucketFim, r);
+        }
+        const just = tempoJustificadoDoItem(v);
+        if (!just) continue;
+        if (v.anteriorHora === null || v.anteriorHora === undefined) {
+          if (bucketFim) justificadoPorBucket.set(bucketFim, (justificadoPorBucket.get(bucketFim) || 0) + just);
+          continue;
+        }
+        const a = v.anteriorHora;
+        const b = v.hora < a ? v.hora + 86400 : v.hora; // parada atravessando a meia-noite
+        const duracao = Math.max(1, b - a);
+        for (const w of BUCKETS_HORARIOS) {
+          const ov = sobreposicaoComJanela(a, b, w);
+          if (ov > 0) justificadoPorBucket.set(w, (justificadoPorBucket.get(w) || 0) + just * ov / duracao);
+        }
+      }
+
       const params = parametrosDe(operador);
       // meta por hora = meta diária ÷ horas estimadas (padrão 7h — já
       // descontadas as pausas/variáveis do dia, mesmo parâmetro do Dashboard).
@@ -1314,15 +1389,23 @@ function montarApp(){
 
       const linhas = bucketsIniciados.map(bucket => {
         const h = porBucket.get(bucket) || { efetivo: 0, somaOk: 0, contOk: 0, qtdVerificar: 0 };
+        const r = revisoesPorBucket.get(bucket) || { aprovados: 0, reprovados: 0 };
+        const justificadoSeg = Math.round(justificadoPorBucket.get(bucket) || 0);
+        const trabalhado = h.somaOk + justificadoSeg;
         return {
           label: bucket.label, turno: bucket.turno,
+          bucketIdx: BUCKETS_HORARIOS.indexOf(bucket),
           efetivo: h.efetivo,
           metaHora,
           pctProdutividade: metaHora ? h.efetivo / metaHora : null,
-          horasTrabalhadasSeg: h.somaOk,
-          pctUtilizacao: h.somaOk / 3600,
+          horasTrabalhadasSeg: trabalhado,
+          justificadoSeg,
+          pctUtilizacao: trabalhado / 3600,
           tempoMedioSeg: h.contOk ? Math.round(h.somaOk / h.contOk) : null,
           qtdVerificar: h.qtdVerificar,
+          aprovados: r.aprovados,
+          reprovados: r.reprovados,
+          pendentes: Math.max(0, h.qtdVerificar - r.aprovados - r.reprovados),
         };
       });
 
@@ -1377,10 +1460,21 @@ function montarApp(){
           <td class="py-1.5 px-3 text-right font-mono">${l.efetivo}</td>
           <td class="py-1.5 px-3 text-right font-mono text-[var(--text-dim)]">${l.metaHora.toFixed(1)}</td>
           <td class="py-1.5 px-3 text-right font-mono">${formatPct(l.pctProdutividade)}</td>
-          <td class="py-1.5 px-3 text-right font-mono">${segParaMinSeg(l.horasTrabalhadasSeg)}</td>
+          <td class="py-1.5 px-3 text-right font-mono">
+            ${segParaMinSeg(l.horasTrabalhadasSeg)}
+            ${l.justificadoSeg ? `<span class="block text-[10px] text-[var(--ok)]" title="Parte do tempo de paradas aprovadas que caiu dentro dessa hora (já somada)">+${segParaMinSeg(l.justificadoSeg)} justif.</span>` : ''}
+          </td>
           <td class="py-1.5 px-3 text-right font-mono">${formatPct(l.pctUtilizacao)}</td>
           <td class="py-1.5 px-3 text-right font-mono">${segParaMinSeg(l.tempoMedioSeg)}</td>
-          <td class="py-1.5 pl-3 text-right">${l.qtdVerificar ? `<button type="button" data-abrir-verificar-tr class="badge-warn px-2 py-0.5 rounded-md font-mono hover:brightness-110 cursor-pointer transition">${l.qtdVerificar}</button>` : '<span class="text-[var(--text-dim)]">0</span>'}</td>
+          <td class="py-1.5 pl-3">
+            ${l.qtdVerificar
+              ? `<div class="flex justify-end gap-1">
+                  ${l.pendentes ? `<button type="button" data-abrir-verificar-tr="${l.bucketIdx}" class="badge-warn px-1.5 py-0.5 rounded-md font-mono text-[11px] hover:brightness-110 cursor-pointer transition" title="Pendentes de revisão">${l.pendentes}</button>` : ''}
+                  ${l.aprovados ? `<button type="button" data-abrir-verificar-tr="${l.bucketIdx}" class="badge-ok px-1.5 py-0.5 rounded-md font-mono text-[11px] hover:brightness-110 cursor-pointer transition" title="Aprovados">${l.aprovados}</button>` : ''}
+                  ${l.reprovados ? `<button type="button" data-abrir-verificar-tr="${l.bucketIdx}" class="badge-danger px-1.5 py-0.5 rounded-md font-mono text-[11px] hover:brightness-110 cursor-pointer transition" title="Reprovados">${l.reprovados}</button>` : ''}
+                </div>`
+              : '<span class="text-[var(--text-dim)] block text-right">0</span>'}
+          </td>
         </tr>
       `).join('');
     } catch (e) {
@@ -1489,6 +1583,8 @@ function montarApp(){
 
   /* ============================== DASHBOARD ================================ */
   let linhasDashboardAtuais = [];
+  let comparativoAtual = false;
+  let dashboardPrecisaRerender = false;
   let dadosQuantidadeDia = null;
   let modoQuantidadeDia = 'dia';
 
@@ -1528,6 +1624,7 @@ function montarApp(){
     let inicio = $('#dash-inicio').value;
     let fim = $('#dash-fim').value;
     if (!operadorSel || !inicio || !fim) return;
+    const inicioPedido = inicio, fimPedido = fim;
 
     $('#dash-loading').classList.remove('hidden');
     $('#dash-vazio').classList.add('hidden');
@@ -1549,7 +1646,7 @@ function montarApp(){
           $('#dash-inicio').value = inicio;
           $('#dash-fim').value = fim;
           linhas = tudo;
-          toast('Não havia dados de 04/07 a 03/08 — ajustei o período para ' + formatDataBR(inicio) + ' a ' + formatDataBR(fim) + ', que é onde há indicadores salvos.');
+          toast(`Não havia dados de ${formatDataBR(inicioPedido)} a ${formatDataBR(fimPedido)} — ajustei o período para ` +  formatDataBR(inicio) + ' a ' + formatDataBR(fim) + ', que é onde há indicadores salvos.');
         }
       }
 
@@ -1591,11 +1688,19 @@ function montarApp(){
 
   function enriquecer(linha) {
     const p = parametrosDe(linha.operador);
-    const horasTrabalhadasSeg = linha.horasTrabalhadasSeg || 0;
+    // Horas trabalhadas = tempo calculado entre movimentações "ok" + tempo
+    // das paradas aprovadas como justificadas. Idempotente: pode ser chamada
+    // de novo numa linha já enriquecida (re-render depois de uma revisão).
+    const horasTrabalhadasBaseSeg = linha.horasTrabalhadasBaseSeg ?? (linha.horasTrabalhadasSeg || 0);
+    const tempoJustificadoSeg = tempoJustificadoTotal(linha);
+    const horasTrabalhadasSeg = horasTrabalhadasBaseSeg + tempoJustificadoSeg;
     const tempoIneficienciaSeg = horasTrabalhadasSeg > p.horasEstimadasSeg ? null : (p.horasEstimadasSeg - horasTrabalhadasSeg);
     const tempoMedioEfetivoSeg = linha.tempoMedioEfetivoSeg;
     return {
       ...linha,
+      horasTrabalhadasBaseSeg,
+      tempoJustificadoSeg,
+      horasTrabalhadasSeg,
       meta: p.meta,
       horasEstimadasSeg: p.horasEstimadasSeg,
       tempoMedioMetaSeg: p.tempoMedioMetaSeg,
@@ -1614,6 +1719,7 @@ function montarApp(){
   }
 
   function renderDashboard(linhasBrutas, comparativo) {
+    comparativoAtual = comparativo;
     const linhas = linhasBrutas.map(enriquecer);
 
     const media = (arr) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
@@ -1902,7 +2008,10 @@ function montarApp(){
         </td>
         <td class="py-1.5 px-3 text-right font-mono text-[var(--text-dim)]">${l.meta}</td>
         <td class="py-1.5 px-3 text-right font-mono">${formatPct(l.pctProdutividade)}</td>
-        <td class="py-1.5 px-3 text-right font-mono border-l border-[var(--border)]/50">${segParaHMS(l.horasTrabalhadasSeg)}</td>
+        <td class="py-1.5 px-3 text-right font-mono border-l border-[var(--border)]/50">
+          ${segParaHMS(l.horasTrabalhadasSeg)}
+          ${l.tempoJustificadoSeg ? `<span class="block text-[10px] text-[var(--ok)]" title="Tempo de paradas aprovadas, já somado nas horas trabalhadas">+${segParaHMS(l.tempoJustificadoSeg)} justif.</span>` : ''}
+        </td>
         <td class="py-1.5 px-3 text-right font-mono text-[var(--text-dim)]">${segParaHMS(l.horasEstimadasSeg)}</td>
         <td class="py-1.5 px-3 text-right font-mono">${formatPct(l.pctUtilizacao)}</td>
         <td class="py-1.5 px-3 text-right font-mono">${segParaHMS(l.tempoIneficienciaSeg)}</td>
@@ -1939,6 +2048,7 @@ function montarApp(){
         'Meta': l.meta,
         '% Produtividade': l.pctProdutividade !== null ? Number((l.pctProdutividade * 100).toFixed(1)) : null,
         'Horas trabalhadas': segParaHMS(l.horasTrabalhadasSeg),
+        'Tempo justificado (aprovado)': segParaHMS(l.tempoJustificadoSeg || 0),
         'Horas estimadas': segParaHMS(l.horasEstimadasSeg),
         '% Utilização': l.pctUtilizacao !== null ? Number((l.pctUtilizacao * 100).toFixed(1)) : null,
         'Tempo de ineficiência': segParaHMS(l.tempoIneficienciaSeg),
@@ -1971,9 +2081,13 @@ function montarApp(){
   });
 
   let linhaModalAtual = null;
+  // Filtro opcional (ex: só uma janela de hora do Tempo Real). É só de
+  // exibição: a revisão sempre grava a lista completa do dia.
+  let filtroModalVerificar = null;
 
-  function abrirModalVerificar(linha) {
+  function abrirModalVerificar(linha, filtro = null) {
     linhaModalAtual = linha;
+    filtroModalVerificar = filtro;
     renderCorpoModalVerificar();
     $('#modal-verificar').classList.remove('hidden');
   }
@@ -1982,16 +2096,34 @@ function montarApp(){
     const linha = linhaModalAtual;
     if (!linha) return;
     const lista = linha.verificarList || [];
-    const pendentes = contarPendentes(linha);
+    const filtro = filtroModalVerificar;
+    // guarda o índice original de cada item pra salvar no lugar certo da lista completa
+    const itens = lista.map((v, i) => ({ v, i })).filter(x => !filtro || filtro.fn(x.v));
 
-    $('#modal-verificar-titulo').textContent = `${linha.operador} — ${formatDataBR(linha.data)}`;
-    $('#modal-verificar-subtitulo').textContent =
-      `${linha.qtdVerificar} movimentaç${linha.qtdVerificar === 1 ? 'ão' : 'ões'} acima do limite · ${pendentes} pendente${pendentes === 1 ? '' : 's'} de revisão` +
-      (lista.length && lista.length < linha.qtdVerificar ? ` · mostrando as ${lista.length} primeiras` : '');
+    $('#modal-verificar-titulo').textContent =
+      `${linha.operador} — ${formatDataBR(linha.data)}${filtro ? ' · ' + filtro.label : ''}`;
+    if (filtro) {
+      const pend = itens.filter(x => !x.v.revisao || x.v.revisao.status === 'pendente').length;
+      const just = itens.reduce((a, x) => a + tempoJustificadoDoItem(x.v), 0);
+      $('#modal-verificar-subtitulo').textContent =
+        `${itens.length} movimentaç${itens.length === 1 ? 'ão' : 'ões'} acima do limite nessa hora · ${pend} pendente${pend === 1 ? '' : 's'}` +
+        (just ? ` · ${segParaHMS(just)} justificado` : '');
+    } else {
+      const pendentes = contarPendentes(linha);
+      const just = tempoJustificadoTotal(linha);
+      $('#modal-verificar-subtitulo').textContent =
+        `${linha.qtdVerificar} movimentaç${linha.qtdVerificar === 1 ? 'ão' : 'ões'} acima do limite · ${pendentes} pendente${pendentes === 1 ? '' : 's'} de revisão` +
+        (just ? ` · ${segParaHMS(just)} justificado` : '') +
+        (lista.length && lista.length < linha.qtdVerificar ? ` · mostrando as ${lista.length} primeiras` : '');
+    }
 
     const corpo = $('#modal-verificar-corpo');
     if (!lista.length) {
       corpo.innerHTML = `<p class="py-6 text-center text-sm text-[var(--text-dim)]">Esse indicador foi salvo antes de guardarmos a lista detalhada — reimporte a planilha desse período pra revisar os itens aqui.</p>`;
+      return;
+    }
+    if (!itens.length) {
+      corpo.innerHTML = `<p class="py-6 text-center text-sm text-[var(--text-dim)]">Nenhum detalhe salvo pra essa hora.</p>`;
       return;
     }
 
@@ -2010,16 +2142,20 @@ function montarApp(){
         <span class="font-mono">${origemDestinoTexto(d.origemCod, d.origemLocal)}</span> → <span class="font-mono">${origemDestinoTexto(d.destinoCod, d.destinoLocal)}</span>${d.descricao ? ` · ${esc(d.descricao)}` : ''}
       </p>`;
 
-    corpo.innerHTML = lista.map((v, i) => {
+    corpo.innerHTML = itens.map(({ v, i }) => {
       const rev = v.revisao || { status: 'pendente', justificativa: '' };
+      const maxSeg = Math.max(0, Number(v.tempoMovSeg) || 0);
+      const justSeg = tempoJustificadoDoItem(v);
       const statusBadge = rev.status === 'aprovado'
-        ? `<span class="badge-ok px-2 py-0.5 rounded-md">Aprovado</span>`
+        ? `<span class="badge-ok px-2 py-0.5 rounded-md">Aprovado · ${justSeg ? '+' + segParaHMS(justSeg) : 'sem tempo definido'}</span>`
         : rev.status === 'reprovado'
           ? `<span class="badge-danger px-2 py-0.5 rounded-md">Reprovado</span>`
           : `<span class="badge-warn px-2 py-0.5 rounded-md">Pendente</span>`;
+      const presets = [15 * 60, 30 * 60, 60 * 60].filter(s => s < maxSeg);
+      const valorInicial = justSeg || maxSeg;
 
       return `
-      <div class="panel-2 rounded-xl p-3 space-y-2" data-item-idx="${i}">
+      <div class="panel-2 rounded-xl p-3 space-y-2" data-item-idx="${i}" data-max-seg="${maxSeg}">
         <div class="flex items-start justify-between gap-2 flex-wrap">
           <div class="space-y-1">
             ${blocoMovimento({
@@ -2040,34 +2176,76 @@ function montarApp(){
         })}
         <textarea rows="2" class="w-full rounded-lg px-3 py-2 text-xs input-justificativa" placeholder="Justificativa (café, almoço, reunião, manutenção...)">${esc(rev.justificativa)}</textarea>
         ${rev.revisadoEm ? `<p class="text-[10px] text-[var(--text-dim)]">Revisado por ${esc(rev.revisadoPor) || '–'} em ${new Date(rev.revisadoEm).toLocaleString('pt-BR')}</p>` : ''}
+        <p class="erro-card hidden text-xs text-[var(--danger)]"></p>
         <div class="flex gap-2">
           <button type="button" class="btn-aprovar bg-[var(--ok)]/15 text-[var(--ok)] border border-[var(--ok)]/40 rounded-lg px-3 py-1.5 text-xs font-medium hover:brightness-110 transition">Aprovar</button>
           <button type="button" class="btn-reprovar bg-[var(--danger)]/15 text-[var(--danger)] border border-[var(--danger)]/40 rounded-lg px-3 py-1.5 text-xs font-medium hover:brightness-110 transition">Reprovar</button>
+        </div>
+        <div class="painel-tempo hidden rounded-lg border border-[var(--ok)]/40 bg-white p-3 space-y-2">
+          <p class="text-xs font-semibold">Quanto dessa parada conta como tempo trabalhado?</p>
+          <p class="text-[11px] text-[var(--text-dim)]">Máximo: <span class="font-mono">${segParaHMS(maxSeg)}</span> (o tempo real da parada). Formato hh:mm:ss, mm:ss ou só minutos.</p>
+          <div class="flex flex-wrap items-center gap-2">
+            <input type="text" inputmode="numeric" class="input-tempo-justificado w-28 rounded-lg px-3 py-1.5 text-xs font-mono" value="${segParaHMS(valorInicial)}">
+            <button type="button" data-preset-seg="${maxSeg}" class="btn-preset-tempo border border-[var(--border)] rounded-md px-2 py-1 text-[11px] hover:bg-[var(--panel-2)]">Total (${segParaHMS(maxSeg)})</button>
+            ${presets.map(s => `<button type="button" data-preset-seg="${s}" class="btn-preset-tempo border border-[var(--border)] rounded-md px-2 py-1 text-[11px] hover:bg-[var(--panel-2)]">${s / 60} min</button>`).join('')}
+          </div>
+          <p class="erro-tempo hidden text-xs text-[var(--danger)]"></p>
+          <div class="flex gap-2">
+            <button type="button" class="btn-confirmar-aprovacao bg-[var(--ok)] text-white rounded-lg px-3 py-1.5 text-xs font-semibold hover:brightness-110 transition">Confirmar aprovação</button>
+            <button type="button" class="btn-cancelar-aprovacao border border-[var(--border)] rounded-lg px-3 py-1.5 text-xs hover:bg-[var(--panel-2)] transition">Cancelar</button>
+          </div>
         </div>
       </div>`;
     }).join('');
   }
 
-  async function salvarRevisao(indexItem, status, justificativa) {
+  async function salvarRevisao(indexItem, status, justificativa, tempoJustificadoSeg = 0) {
     const linha = linhaModalAtual;
     if (!linha || !linha.verificarList || !linha.verificarList[indexItem]) return;
     const chave = `${slug(linha.operador)}_${linha.data}`;
-    linha.verificarList[indexItem].revisao = {
+    const item = linha.verificarList[indexItem];
+    const anterior = item.revisao;
+    item.revisao = {
       status,
       justificativa: justificativa || '',
+      tempoJustificadoSeg: status === 'aprovado'
+        ? Math.min(Math.max(0, Math.round(tempoJustificadoSeg)), Math.max(0, Number(item.tempoMovSeg) || 0))
+        : 0,
       revisadoPor: (estado.usuario && estado.usuario.email) || null,
       revisadoEm: new Date().toISOString(),
     };
     try {
+      // grava sempre a lista completa do dia, mesmo quando o modal está filtrado por hora
       await setDoc(doc(db, 'indicadores_diarios', chave), { verificarList: linha.verificarList }, { merge: true });
-      toast(status === 'aprovado' ? 'Marcado como aprovado.' : 'Marcado como reprovado.');
+      toast(status === 'aprovado'
+        ? `Aprovado — ${segParaHMS(item.revisao.tempoJustificadoSeg)} somado nas horas trabalhadas.`
+        : 'Marcado como reprovado.');
     } catch (e) {
       console.error(e);
+      item.revisao = anterior; // não deixa a tela mostrar algo que não foi salvo
       toast('Erro ao salvar a revisão: ' + (e.message || e), 'erro');
     }
     renderCorpoModalVerificar();
-    renderTabelaDashboard();
-    $('#kpi-verificar').textContent = linhasDashboardAtuais.reduce((a, l) => a + contarPendentes(l), 0);
+    atualizarTelasAposRevisao(linha);
+  }
+
+  // Uma revisão muda horas trabalhadas, % utilização, ineficiência e os
+  // contadores de "a verificar" — atualiza o Dashboard e o Tempo Real.
+  function atualizarTelasAposRevisao(linha) {
+    // a mesma operador×dia pode estar carregada no Dashboard como outro objeto
+    for (const l of linhasDashboardAtuais) {
+      if (l.operador === linha.operador && l.data === linha.data && l.verificarList !== linha.verificarList) {
+        l.verificarList = linha.verificarList;
+      }
+    }
+    if (linhasDashboardAtuais.length) {
+      if (!$('#painel-dashboard').classList.contains('hidden')) renderDashboard(linhasDashboardAtuais, comparativoAtual);
+      else dashboardPrecisaRerender = true;
+    }
+    if (!$('#painel-tempo-real').classList.contains('hidden') && linhaTRAtual
+        && linhaTRAtual.operador === linha.operador && linhaTRAtual.data === linha.data) {
+      renderTempoReal();
+    }
   }
 
   $('#tabela-dashboard').addEventListener('click', (e) => {
@@ -2088,9 +2266,47 @@ function montarApp(){
     const card = e.target.closest('[data-item-idx]');
     if (!card) return;
     const idx = Number(card.dataset.itemIdx);
+    const maxSeg = Number(card.dataset.maxSeg) || 0;
     const justificativa = card.querySelector('.input-justificativa')?.value.trim() || '';
-    if (e.target.closest('.btn-aprovar')) salvarRevisao(idx, 'aprovado', justificativa);
-    else if (e.target.closest('.btn-reprovar')) salvarRevisao(idx, 'reprovado', justificativa);
+    const painel = card.querySelector('.painel-tempo');
+    const erroCard = card.querySelector('.erro-card');
+    const erroTempo = card.querySelector('.erro-tempo');
+    const mostrarErro = (el, msg) => { el.textContent = msg; el.classList.remove('hidden'); };
+    erroCard.classList.add('hidden');
+
+    if (e.target.closest('.btn-aprovar')) {
+      if (!justificativa) {
+        mostrarErro(erroCard, 'Escreva a justificativa antes de aprovar.');
+        card.querySelector('.input-justificativa').focus();
+        return;
+      }
+      painel.classList.remove('hidden');
+      const input = painel.querySelector('.input-tempo-justificado');
+      input.focus();
+      input.select();
+    } else if (e.target.closest('.btn-reprovar')) {
+      salvarRevisao(idx, 'reprovado', justificativa, 0);
+    } else if (e.target.closest('.btn-preset-tempo')) {
+      painel.querySelector('.input-tempo-justificado').value = segParaHMS(Number(e.target.closest('.btn-preset-tempo').dataset.presetSeg));
+      erroTempo.classList.add('hidden');
+    } else if (e.target.closest('.btn-cancelar-aprovacao')) {
+      painel.classList.add('hidden');
+      erroTempo.classList.add('hidden');
+    } else if (e.target.closest('.btn-confirmar-aprovacao')) {
+      const seg = parseDuracao(painel.querySelector('.input-tempo-justificado').value);
+      if (seg === null) return mostrarErro(erroTempo, 'Tempo inválido. Use hh:mm:ss, mm:ss ou só os minutos.');
+      if (seg <= 0) return mostrarErro(erroTempo, 'Informe um tempo maior que zero (se nada da parada deve contar, use Reprovar).');
+      if (seg > maxSeg) return mostrarErro(erroTempo, `Não dá pra justificar mais que a própria parada (${segParaHMS(maxSeg)}).`);
+      if (!justificativa) return mostrarErro(erroTempo, 'Escreva a justificativa antes de aprovar.');
+      salvarRevisao(idx, 'aprovado', justificativa, seg);
+    }
+  });
+
+  $('#modal-verificar-corpo').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && e.target.classList.contains('input-tempo-justificado')) {
+      e.preventDefault();
+      e.target.closest('.painel-tempo').querySelector('.btn-confirmar-aprovacao').click();
+    }
   });
 
   $('#btn-fechar-modal-verificar').addEventListener('click', () => $('#modal-verificar').classList.add('hidden'));

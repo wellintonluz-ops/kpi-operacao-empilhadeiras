@@ -247,6 +247,7 @@
       </div>
 
       <div id="tr-conteudo" class="hidden space-y-5 fade-in">
+        <div id="tr-parado" class="hidden"></div>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div class="panel rounded-xl p-4"><p class="text-[11px] text-[var(--text-dim)] mb-1">Efetivo hoje</p><p id="tr-kpi-efetivo" class="text-2xl font-bold font-mono">–</p><p id="tr-kpi-efetivo-base" class="text-[11px] text-[var(--text-dim)] mt-0.5"></p></div>
           <div class="panel rounded-xl p-4"><p class="text-[11px] text-[var(--text-dim)] mb-1">% Produtividade</p><p id="tr-kpi-produtividade" class="text-2xl font-bold font-mono">–</p><p id="tr-kpi-produtividade-base" class="text-[11px] text-[var(--text-dim)] mt-0.5"></p></div>
@@ -1137,7 +1138,7 @@ function montarApp(){
     return salvos;
   }
 
-  function calcularIndicadores(registros) {
+  function calcularIndicadores(registros, agoraMs = Date.now()) {
     const porOperador = {};
     for (const r of registros) (porOperador[r.responsavel] ||= []).push(r);
 
@@ -1153,6 +1154,10 @@ function montarApp(){
         const diaOp = diaOperacional(row.dataISO, row.horaSeg);
         const dia = (porDia[diaOp] ||= { efetivo: 0, somaOk: 0, contOk: 0, qtdVerificar: 0, verificarList: [], movimentos: [], qtdMovimentada: 0, temQtd: false });
         dia.efetivo++;
+        // segundos contados a partir da 00:00 do dia operacional (depois da
+        // meia-noite soma 24h) — a lista vem em ordem, então fica a última
+        dia.ultimo = row;
+        dia.ultimoSegOp = row.horaSeg + (row.dataISO !== diaOp ? 86400 : 0);
         if (row.quantidade !== null && row.quantidade !== undefined && row.quantidade !== '' && !isNaN(Number(row.quantidade))) {
           dia.qtdMovimentada += Number(row.quantidade);
           dia.temQtd = true;
@@ -1205,8 +1210,41 @@ function montarApp(){
       for (const data of Object.keys(porDia)) {
         const d = porDia[data];
         const chave = `${slug(operador)}_${data}`;
+
+        // Parada final do dia: da última movimentação até o fim do turno. Só é
+        // registrada se o turno já tinha acabado na hora da importação — antes
+        // disso ainda pode vir movimentação, e a tela mostra "parado até agora".
+        const fimTurno = fimDoTurnoSeg(params.turno);
+        const turnoFechado = agoraMs >= instanteDoDia(data, fimTurno);
+        if (turnoFechado && d.ultimo && d.ultimoSegOp < fimTurno) {
+          const gap = fimTurno - d.ultimoSegOp;
+          if (gap > params.limiteVerificarSeg) {
+            const u = d.ultimo;
+            d.qtdVerificar += 1;
+            d.verificarList.push({
+              fimDeTurno: true,
+              hora: fimTurno % 86400, tempoMovSeg: gap,
+              produto: null, descricao: 'Sem movimentação até o fim do turno',
+              origemCod: null, destinoCod: null, origemLocal: null, destinoLocal: null, quantidade: null,
+              anteriorHora: u.horaSeg,
+              anteriorProduto: u.produto || null,
+              anteriorDescricao: u.descricao || null,
+              anteriorOrigemCod: u.origemCod || null,
+              anteriorDestinoCod: u.destinoCod || null,
+              anteriorOrigemLocal: u.origemLocal || null,
+              anteriorDestinoLocal: u.destinoLocal || null,
+              anteriorQuantidade: u.quantidade ?? null,
+              revisao: { status: 'pendente', justificativa: '', revisadoPor: null, revisadoEm: null },
+            });
+          }
+        }
+
         resultado[chave] = {
           operador, data,
+          ultimaMovSeg: d.ultimoSegOp ?? null,
+          ultimaMovHora: d.ultimo ? d.ultimo.horaSeg : null,
+          fimTurnoSeg: fimTurno,
+          turnoFechado,
           efetivo: d.efetivo,
           horasTrabalhadasSeg: d.somaOk,
           tempoMedioEfetivoSeg: d.contOk ? Math.round(d.somaOk / d.contOk) : null,
@@ -1244,6 +1282,55 @@ function montarApp(){
     { label: '22:00–23:00', inicio: 22 * 3600, fim: 23 * 3600, turno: 'Turno 2' },
     { label: '23:00–00:04', inicio: 23 * 3600, fim: 24 * 3600 + 4 * 60, turno: 'Turno 2' },
   ];
+
+  // Fim do turno em segundos a partir da 00:00 do dia operacional:
+  // Turno 1 = 14:20 (51600), Turno 2 = 00:04 do dia seguinte (86640).
+  function fimDoTurnoSeg(turno) {
+    const nome = turno === 2 ? 'Turno 2' : 'Turno 1';
+    return Math.max(...BUCKETS_HORARIOS.filter(b => b.turno === nome).map(b => b.fim));
+  }
+
+  // instante (ms) de "segundos a partir da 00:00" de um dia operacional
+  function instanteDoDia(dataISO, seg) {
+    const [y, m, d] = dataISO.split('-').map(Number);
+    return new Date(y, m - 1, d, 0, 0, 0, 0).getTime() + seg * 1000;
+  }
+
+  // Situação do fim do dia de um operador (usada no Tempo Real e no Dashboard):
+  //  - 'andamento': turno ainda não acabou; paradoSeg = da última movimentação até agora
+  //  - 'registrada': turno acabou e a parada final já está na lista "a verificar"
+  //  - 'falta-importar': turno acabou mas a última importação foi antes do fim
+  //  - null: nada a mostrar
+  function situacaoFimDoDia(linha, agoraMs = Date.now()) {
+    if (!linha || !linha.data) return null;
+    const params = parametrosDe(linha.operador);
+    const fimTurno = fimDoTurnoSeg(params.turno);
+    let ultSeg = linha.ultimaMovSeg;
+    if (ultSeg === null || ultSeg === undefined) {
+      // dias importados antes dessa versão: usa o histórico salvo
+      const horas = (linha.movimentos || []).map(m => (m.hora < LIMITE_VIRADA_DIA_SEG ? m.hora + 86400 : m.hora));
+      if (!horas.length) return null;
+      ultSeg = Math.max(...horas);
+    }
+    if (ultSeg >= fimTurno) return null;
+    const agoraSeg = (agoraMs - instanteDoDia(linha.data, 0)) / 1000;
+    if (agoraSeg < fimTurno) {
+      return { tipo: 'andamento', ultSeg, fimTurno, paradoSeg: Math.max(0, Math.round(agoraSeg - ultSeg)), limite: params.limiteVerificarSeg };
+    }
+    const item = (linha.verificarList || []).find(v => v.fimDeTurno);
+    if (item) return { tipo: 'registrada', ultSeg, fimTurno, paradoSeg: item.tempoMovSeg, item };
+    const atualizadoMs = linha.atualizadoEm ? new Date(linha.atualizadoEm).getTime() : 0;
+    if (atualizadoMs < instanteDoDia(linha.data, fimTurno) && fimTurno - ultSeg > params.limiteVerificarSeg) {
+      return { tipo: 'falta-importar', ultSeg, fimTurno, paradoSeg: fimTurno - ultSeg, atualizadoMs };
+    }
+    return null;
+  }
+
+  // janela de hora onde um item "a verificar" é contado (a parada final termina
+  // exatamente no fim do turno, então conta na última janela do turno)
+  function bucketDoItem(v) {
+    return bucketDaHora(v.fimDeTurno ? (v.hora + 86400 - 1) % 86400 : v.hora);
+  }
 
   // Movimentações fora de todas as janelas acima (troca de turno 14:20–15:00,
   // início do turno 1 antes das 05:20 etc.) não entram em nenhuma linha da
@@ -1286,7 +1373,7 @@ function montarApp(){
     const bucket = BUCKETS_HORARIOS[Number(btn.dataset.abrirVerificarTr)];
     if (!bucket) return;
     // abre só as paradas que terminaram dentro dessa janela de hora
-    abrirModalVerificar(linhaTRAtual, { label: bucket.label, fn: v => bucketDaHora(v.hora) === bucket });
+    abrirModalVerificar(linhaTRAtual, { label: bucket.label, fn: v => bucketDoItem(v) === bucket });
   });
 
   function abrirTempoReal() {
@@ -1312,6 +1399,35 @@ function montarApp(){
     sel.onchange = renderTempoReal;
   }
 
+  // Aviso de fim do dia no Tempo Real: quanto tempo o operador está sem
+  // movimentar desde a última movimentação importada.
+  function renderAvisoParadoTR() {
+    const el = $('#tr-parado');
+    const sit = situacaoFimDoDia(linhaTRAtual);
+    if (!sit) { el.classList.add('hidden'); return; }
+    const hora = s => segParaHMS(s % 86400);
+    const importacao = linhaTRAtual.atualizadoEm
+      ? new Date(linhaTRAtual.atualizadoEm).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+      : null;
+    let cor = 'warn', titulo, detalhe;
+    if (sit.tipo === 'andamento') {
+      const acima = sit.paradoSeg > sit.limite;
+      cor = acima ? 'warn' : 'dim';
+      titulo = `Última movimentação às ${hora(sit.ultSeg)} — sem movimentar há <span class="font-mono">${segParaHMS(sit.paradoSeg)}</span> (até agora)`;
+      detalhe = `O turno vai até ${hora(sit.fimTurno).slice(0, 5)}. Se não houver mais movimentação, ao fim do turno essa parada é registrada em "A verificar".` +
+        (importacao ? ` Dados importados às ${importacao} — pode ter havido movimentação depois disso.` : '');
+    } else if (sit.tipo === 'registrada') {
+      titulo = `Turno encerrado — parada final de <span class="font-mono">${segParaHMS(sit.paradoSeg)}</span> registrada (${hora(sit.ultSeg)} até ${hora(sit.fimTurno).slice(0, 5)})`;
+      detalhe = 'Ela está em "A verificar" na última hora do turno, pra justificar ou reprovar.';
+    } else {
+      titulo = `Turno encerrado às ${hora(sit.fimTurno).slice(0, 5)}, mas a última importação foi antes disso`;
+      detalhe = `Última movimentação às ${hora(sit.ultSeg)}. Importe o relatório do dia de novo pra registrar o tempo parado até o fim do turno.`;
+    }
+    el.className = cor === 'dim' ? 'panel rounded-xl px-4 py-3 text-sm' : 'rounded-xl px-4 py-3 text-sm';
+    el.style.cssText = cor === 'dim' ? '' : 'background:rgba(217,119,6,.10); border:1px solid rgba(217,119,6,.40);';
+    el.innerHTML = `<p class="font-medium">${titulo}</p><p class="text-xs text-[var(--text-dim)] mt-0.5">${detalhe}</p>`;
+  }
+
   async function renderTempoReal() {
     const operador = $('#tr-operador').value;
     if (!operador) {
@@ -1335,6 +1451,9 @@ function montarApp(){
         operador, data: hoje,
         qtdVerificar: dadosDia?.qtdVerificar || 0,
         verificarList: dadosDia?.verificarList || [],
+        movimentos,
+        ultimaMovSeg: dadosDia?.ultimaMovSeg ?? null,
+        atualizadoEm: dadosDia?.atualizadoEm || null,
       };
 
       if (!movimentos.length) {
@@ -1345,6 +1464,7 @@ function montarApp(){
       }
       $('#tr-vazio').classList.add('hidden');
       $('#tr-conteudo').classList.remove('hidden');
+      renderAvisoParadoTR();
 
       // Os movimentos já vêm com tempoMovSeg/status calculados (mesma lógica
       // da aba Importar) — aqui só agrupamos nas janelas de hora do Tempo Real.
@@ -1367,11 +1487,13 @@ function montarApp(){
       const revisoesPorBucket = new Map();
       const justificadoPorBucket = new Map();
       for (const v of linhaTRAtual.verificarList) {
-        const bucketFim = bucketDaHora(v.hora);
+        const bucketFim = bucketDoItem(v);
         if (bucketFim) {
-          const r = revisoesPorBucket.get(bucketFim) || { aprovados: 0, reprovados: 0 };
+          const r = revisoesPorBucket.get(bucketFim) || { aprovados: 0, reprovados: 0, extras: 0 };
           if (v.revisao?.status === 'aprovado') r.aprovados++;
           else if (v.revisao?.status === 'reprovado') r.reprovados++;
+          // a parada final não é uma movimentação, então não está na contagem por hora
+          if (v.fimDeTurno) r.extras++;
           revisoesPorBucket.set(bucketFim, r);
         }
         const just = tempoJustificadoDoItem(v);
@@ -1408,8 +1530,9 @@ function montarApp(){
 
       const linhas = bucketsIniciados.map(bucket => {
         const h = porBucket.get(bucket) || { efetivo: 0, somaOk: 0, contOk: 0, qtdVerificar: 0 };
-        const r = revisoesPorBucket.get(bucket) || { aprovados: 0, reprovados: 0 };
+        const r = revisoesPorBucket.get(bucket) || { aprovados: 0, reprovados: 0, extras: 0 };
         const justificadoSeg = Math.round(justificadoPorBucket.get(bucket) || 0);
+        const qtdVerificarHora = h.qtdVerificar + r.extras;
         const trabalhado = h.somaOk + justificadoSeg;
         return {
           label: bucket.label, turno: bucket.turno,
@@ -1421,10 +1544,10 @@ function montarApp(){
           justificadoSeg,
           pctUtilizacao: trabalhado / 3600,
           tempoMedioSeg: h.contOk ? Math.round(h.somaOk / h.contOk) : null,
-          qtdVerificar: h.qtdVerificar,
+          qtdVerificar: qtdVerificarHora,
           aprovados: r.aprovados,
           reprovados: r.reprovados,
-          pendentes: Math.max(0, h.qtdVerificar - r.aprovados - r.reprovados),
+          pendentes: Math.max(0, qtdVerificarHora - r.aprovados - r.reprovados),
         };
       });
 
@@ -2118,6 +2241,20 @@ function montarApp(){
     return { pendentes, aprovados, reprovados };
   }
 
+  // Linha curta embaixo do nome do operador: parado agora (turno em andamento)
+  // ou turno já encerrado sem a importação que fecha o dia.
+  function avisoFimDoDiaTabela(l) {
+    const sit = situacaoFimDoDia(l);
+    if (!sit) return '';
+    if (sit.tipo === 'andamento' && sit.paradoSeg > sit.limite) {
+      return `<span class="block text-[10px] text-[var(--warn)]" title="Desde a última movimentação importada (${segParaHMS(sit.ultSeg % 86400)})">sem movimentar há ${segParaHMS(sit.paradoSeg)}</span>`;
+    }
+    if (sit.tipo === 'falta-importar') {
+      return `<span class="block text-[10px] text-[var(--warn)]" title="Importe o dia de novo pra registrar a parada até o fim do turno">turno sem fechamento — reimportar</span>`;
+    }
+    return '';
+  }
+
   function renderTabelaDashboard() {
     const tbody = $('#tabela-dashboard');
     tbody.innerHTML = linhasDashboardAtuais.map((l, i) => {
@@ -2125,7 +2262,7 @@ function montarApp(){
       return `
       <tr class="border-b border-[var(--border)]/50">
         <td class="py-1.5 pr-2">${formatDataBR(l.data)}</td>
-        <td class="py-1.5 pr-2">${l.operador}</td>
+        <td class="py-1.5 pr-2">${l.operador}${avisoFimDoDiaTabela(l)}</td>
         <td class="py-1.5 px-2 text-right font-mono border-l border-[var(--border)]/50">
           ${l.efetivo
             ? `<button type="button" data-efetivo-idx="${i}" class="underline decoration-dotted decoration-[var(--text-dim)] hover:decoration-[var(--accent)] hover:text-[var(--accent)] cursor-pointer transition">${l.efetivo}</button>`
@@ -2293,12 +2430,15 @@ function montarApp(){
           ${statusBadge}
         </div>
         <div class="border-t border-[var(--border)]/50"></div>
-        ${blocoMovimento({
-          rotulo: 'Retomou', hora: v.hora, tempoDepois: v.tempoMovSeg, produto: v.produto, quantidade: v.quantidade,
-          origemCod: v.origemCod, origemLocal: v.origemLocal,
-          destinoCod: v.destinoCod, destinoLocal: v.destinoLocal,
-          descricao: v.descricao,
-        })}
+        ${v.fimDeTurno
+          ? `<p class="text-xs"><span class="text-[var(--text-dim)]">Fim do turno em</span> <span class="font-mono">${segParaHMS(v.hora)}</span>, <span class="font-mono text-[var(--warn)]">${segParaHMS(v.tempoMovSeg)}</span> depois</p>
+             <p class="text-[11px] text-[var(--text-dim)]">Sem nenhuma movimentação da última até o fim do turno.</p>`
+          : blocoMovimento({
+              rotulo: 'Retomou', hora: v.hora, tempoDepois: v.tempoMovSeg, produto: v.produto, quantidade: v.quantidade,
+              origemCod: v.origemCod, origemLocal: v.origemLocal,
+              destinoCod: v.destinoCod, destinoLocal: v.destinoLocal,
+              descricao: v.descricao,
+            })}
         <textarea rows="2" class="w-full rounded-lg px-3 py-2 text-xs input-justificativa" placeholder="Justificativa (café, almoço, reunião, manutenção...)">${esc(rev.justificativa)}</textarea>
         ${rev.revisadoEm ? `<p class="text-[10px] text-[var(--text-dim)]">Revisado por ${esc(rev.revisadoPor) || '–'} em ${new Date(rev.revisadoEm).toLocaleString('pt-BR')}</p>` : ''}
         <p class="erro-card hidden text-xs text-[var(--danger)]"></p>
@@ -2480,9 +2620,37 @@ function montarApp(){
         <td class="py-1.5 pr-3 text-[var(--text-dim)]">${esc(v.descricao) || '–'}</td>
         <td class="py-1.5 pr-3">${statusBadge(v.status)}</td>
       </tr>
-    `).join('');
+    `).join('') + linhaFimDoDiaMovimentos(linha);
 
     $('#modal-movimentos').classList.remove('hidden');
+  }
+
+  function linhaFimDoDiaMovimentos(linha) {
+    const sit = situacaoFimDoDia(linha);
+    if (!sit) return '';
+    const fim = segParaHMS(sit.fimTurno % 86400).slice(0, 5);
+    const desde = segParaHMS(sit.ultSeg % 86400);
+    if (sit.tipo === 'andamento') {
+      return `<tr style="background:rgba(217,119,6,.08)">
+        <td class="py-1.5 pr-3 font-mono">agora</td>
+        <td class="py-1.5 pr-3 font-mono ${sit.paradoSeg > sit.limite ? 'text-[var(--warn)]' : ''}">${segParaHMS(sit.paradoSeg)}</td>
+        <td class="py-1.5 pr-3 text-[var(--text-dim)]" colspan="5">Sem movimentação desde ${desde} (turno vai até ${fim}; ao fim do turno a parada é registrada)</td>
+        <td class="py-1.5 pr-3"><span class="text-[var(--text-dim)]">Em andamento</span></td>
+      </tr>`;
+    }
+    if (sit.tipo === 'registrada') {
+      return `<tr style="background:rgba(217,119,6,.08)">
+        <td class="py-1.5 pr-3 font-mono">${fim}:00</td>
+        <td class="py-1.5 pr-3 font-mono text-[var(--warn)]">${segParaHMS(sit.paradoSeg)}</td>
+        <td class="py-1.5 pr-3 text-[var(--text-dim)]" colspan="5">Fim do turno — sem movimentação desde ${desde}</td>
+        <td class="py-1.5 pr-3"><span class="badge-warn px-2 py-0.5 rounded-md">Verificar</span></td>
+      </tr>`;
+    }
+    return `<tr style="background:rgba(217,119,6,.08)">
+      <td class="py-1.5 pr-3 font-mono">${fim}:00</td>
+      <td class="py-1.5 pr-3 font-mono">–</td>
+      <td class="py-1.5 pr-3 text-[var(--text-dim)]" colspan="6">Turno encerrado, mas a última importação foi antes do fim — importe o dia de novo pra registrar a parada desde ${desde}.</td>
+    </tr>`;
   }
 
   $('#btn-fechar-modal-movimentos').addEventListener('click', () => $('#modal-movimentos').classList.add('hidden'));

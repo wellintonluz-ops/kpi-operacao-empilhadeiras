@@ -170,7 +170,7 @@
         </div>
 
         <div id="bloco-quantidade-total" class="hidden panel rounded-xl p-4">
-          <p class="text-sm font-semibold mb-3">Total de movimentações por dia (todos os operadores)</p>
+          <p class="text-sm font-semibold mb-3">Tempo médio por movimentação no dia vs meta (todos os operadores)</p>
           <canvas id="chart-quantidade-total" height="180"></canvas>
         </div>
 
@@ -263,6 +263,11 @@
         <div class="panel rounded-xl p-4">
           <p class="text-sm font-semibold mb-3">% Produtividade e % Utilização por hora</p>
           <canvas id="chart-tr-percentuais" height="220"></canvas>
+        </div>
+
+        <div class="panel rounded-xl p-4">
+          <p class="text-sm font-semibold mb-3">Tempo médio por movimentação por hora vs meta</p>
+          <canvas id="chart-tr-tempo-medio" height="220"></canvas>
         </div>
 
         <div class="panel rounded-xl p-4 overflow-x-auto">
@@ -1595,6 +1600,13 @@ function montarApp(){
         options: baseOptions((v) => v + '%')
       });
 
+      desenharGrafico('chart-tr-tempo-medio', configGraficoTempoMedio(
+        labelsHora,
+        linhas.map(l => l.tempoMedioSeg),
+        linhas.map(() => params.tempoMedioMetaSeg || null),
+        'Tempo médio na hora'
+      ));
+
       $('#tabela-tr').innerHTML = linhas.map(l => `
         <tr class="border-b border-[var(--border)]/50">
           <td class="py-1.5 pr-3 font-mono">${l.label}</td>
@@ -2123,31 +2135,22 @@ function montarApp(){
       dadosQuantidadeDia = { linhas, operadores };
       renderGraficoQuantidadeDia();
 
-      // total do dia (soma de movimentações de todos os operadores)
+      // tempo médio por movimentação no dia (todos os operadores) vs meta.
+      // Média ponderada pelo nº de intervalos "ok" de cada operador:
+      // soma do tempo ok ÷ soma dos intervalos (intervalos = tempo ok ÷ tempo médio).
       $('#bloco-quantidade-total').classList.remove('hidden');
-      const porDataOperadorTotal = {};
+      const porDataTempo = {};
       for (const l of linhas) {
-        const g = (porDataOperadorTotal[l.data] ||= {});
-        g[l.operador] = (g[l.operador] || 0) + (l.efetivo || 0);
+        const g = (porDataTempo[l.data] ||= { somaSeg: 0, cont: 0, somaMeta: 0, contMeta: 0 });
+        const base = l.horasTrabalhadasBaseSeg ?? l.horasTrabalhadasSeg ?? 0;
+        const tm = l.tempoMedioEfetivoSeg;
+        if (tm && base > 0) { g.somaSeg += base; g.cont += base / tm; }
+        if (l.tempoMedioMetaSeg) { g.somaMeta += l.tempoMedioMetaSeg; g.contMeta++; }
       }
-      const datasTotal = Object.keys(porDataOperadorTotal).sort();
-      const totalPorDia = datasTotal.map(d => Object.values(porDataOperadorTotal[d]).reduce((a, b) => a + b, 0));
-      desenharGrafico('chart-quantidade-total', {
-        type: 'line',
-        data: {
-          labels: datasTotal.map(formatDataBR),
-          datasets: [{
-            label: 'Movimentações no dia',
-            data: totalPorDia,
-            borderColor: '#3b82f6',
-            backgroundColor: 'rgba(59, 130, 246, 0.15)',
-            tension: .3,
-            pointRadius: 3,
-            fill: true,
-          }]
-        },
-        options: baseOptions()
-      });
+      const datasTempo = Object.keys(porDataTempo).sort();
+      const tempoMedioPorDia = datasTempo.map(d => porDataTempo[d].cont ? Math.round(porDataTempo[d].somaSeg / porDataTempo[d].cont) : null);
+      const metaTempoPorDia = datasTempo.map(d => porDataTempo[d].contMeta ? Math.round(porDataTempo[d].somaMeta / porDataTempo[d].contMeta) : null);
+      desenharGrafico('chart-quantidade-total', configGraficoTempoMedio(datasTempo.map(formatDataBR), tempoMedioPorDia, metaTempoPorDia, 'Tempo médio no dia'));
     } else {
       $('#bloco-comparativo').classList.add('hidden');
       $('#bloco-quantidade-dia').classList.add('hidden');
@@ -2667,6 +2670,32 @@ function montarApp(){
         x: { ticks: { color: '#8b93a3' }, grid: { color: '#e5e7eb' } },
         y: { ticks: { color: '#8b93a3', callback: tickFormatter || undefined }, grid: { color: '#e5e7eb' } },
       }
+    };
+  }
+
+  // gráfico de linha: tempo médio por movimentação (mm:ss) vs meta tracejada
+  function configGraficoTempoMedio(labels, tempos, metas, rotulo) {
+    const opts = baseOptions((v) => segParaMinSeg(v));
+    opts.scales.y.beginAtZero = true;
+    opts.plugins.tooltip = { callbacks: { label: (c) => `${c.dataset.label}: ${segParaMinSeg(c.parsed.y)}` } };
+    return {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: rotulo, data: tempos,
+            borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.15)',
+            tension: .3, pointRadius: 3, fill: true, spanGaps: true,
+          },
+          {
+            label: 'Meta', data: metas,
+            borderColor: '#ef4444', backgroundColor: '#ef4444', borderWidth: 2, borderDash: [7, 5],
+            pointRadius: 0, pointHoverRadius: 0, fill: false, tension: 0, spanGaps: true,
+          },
+        ]
+      },
+      options: opts,
     };
   }
 

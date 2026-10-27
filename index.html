@@ -170,7 +170,7 @@
         </div>
 
         <div id="bloco-quantidade-total" class="hidden panel rounded-xl p-4">
-          <p class="text-sm font-semibold mb-3">Tempo médio por movimentação no dia vs meta (todos os operadores)</p>
+          <p class="text-sm font-semibold mb-3" id="titulo-tempo-medio-dia">Tempo médio por movimentação no dia vs meta (todos os operadores)</p>
           <canvas id="chart-quantidade-total" height="180"></canvas>
         </div>
 
@@ -2135,27 +2135,35 @@ function montarApp(){
       dadosQuantidadeDia = { linhas, operadores };
       renderGraficoQuantidadeDia();
 
-      // tempo médio por movimentação no dia (todos os operadores) vs meta.
-      // Média ponderada pelo nº de intervalos "ok" de cada operador:
-      // soma do tempo ok ÷ soma dos intervalos (intervalos = tempo ok ÷ tempo médio).
-      $('#bloco-quantidade-total').classList.remove('hidden');
-      const porDataTempo = {};
-      for (const l of linhas) {
-        const g = (porDataTempo[l.data] ||= { somaSeg: 0, cont: 0, somaMeta: 0, contMeta: 0 });
-        const base = l.horasTrabalhadasBaseSeg ?? l.horasTrabalhadasSeg ?? 0;
-        const tm = l.tempoMedioEfetivoSeg;
-        if (tm && base > 0) { g.somaSeg += base; g.cont += base / tm; }
-        if (l.tempoMedioMetaSeg) { g.somaMeta += l.tempoMedioMetaSeg; g.contMeta++; }
-      }
-      const datasTempo = Object.keys(porDataTempo).sort();
-      const tempoMedioPorDia = datasTempo.map(d => porDataTempo[d].cont ? Math.round(porDataTempo[d].somaSeg / porDataTempo[d].cont) : null);
-      const metaTempoPorDia = datasTempo.map(d => porDataTempo[d].contMeta ? Math.round(porDataTempo[d].somaMeta / porDataTempo[d].contMeta) : null);
-      desenharGrafico('chart-quantidade-total', configGraficoTempoMedio(datasTempo.map(formatDataBR), tempoMedioPorDia, metaTempoPorDia, 'Tempo médio no dia'));
     } else {
       $('#bloco-comparativo').classList.add('hidden');
       $('#bloco-quantidade-dia').classList.add('hidden');
-      $('#bloco-quantidade-total').classList.add('hidden');
     }
+
+    renderGraficoTempoMedioDia(linhas);
+  }
+
+  // Tempo médio por movimentação no dia vs meta. Aparece sempre: com
+  // "todos os operadores" junta todo mundo, com um operador filtrado mostra só ele.
+  // Média ponderada pelo nº de intervalos "ok" de cada operador:
+  // soma do tempo ok ÷ soma dos intervalos (intervalos = tempo ok ÷ tempo médio).
+  function renderGraficoTempoMedioDia(linhas) {
+    const nomes = [...new Set(linhas.map(l => l.operador))];
+    $('#titulo-tempo-medio-dia').textContent = 'Tempo médio por movimentação no dia vs meta ('
+      + (nomes.length === 1 ? nomes[0] : 'todos os operadores') + ')';
+    $('#bloco-quantidade-total').classList.remove('hidden');
+    const porDataTempo = {};
+    for (const l of linhas) {
+      const g = (porDataTempo[l.data] ||= { somaSeg: 0, cont: 0, somaMeta: 0, contMeta: 0 });
+      const base = l.horasTrabalhadasBaseSeg ?? l.horasTrabalhadasSeg ?? 0;
+      const tm = l.tempoMedioEfetivoSeg;
+      if (tm && base > 0) { g.somaSeg += base; g.cont += base / tm; }
+      if (l.tempoMedioMetaSeg) { g.somaMeta += l.tempoMedioMetaSeg; g.contMeta++; }
+    }
+    const datasTempo = Object.keys(porDataTempo).sort();
+    const tempoMedioPorDia = datasTempo.map(d => porDataTempo[d].cont ? Math.round(porDataTempo[d].somaSeg / porDataTempo[d].cont) : null);
+    const metaTempoPorDia = datasTempo.map(d => porDataTempo[d].contMeta ? Math.round(porDataTempo[d].somaMeta / porDataTempo[d].contMeta) : null);
+    desenharGrafico('chart-quantidade-total', configGraficoTempoMedio(datasTempo.map(formatDataBR), tempoMedioPorDia, metaTempoPorDia, 'Tempo médio no dia'));
   }
 
   const PALETA_OPERADORES = ['#3b82f6', '#22c55e', '#f5a623', '#ef4444', '#a855f7', '#06b6d4', '#ec4899', '#84cc16', '#f97316', '#14b8a6'];

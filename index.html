@@ -141,12 +141,18 @@
             <canvas id="chart-percentuais" height="220"></canvas>
           </div>
         </div>
+      </div>
 
-        <div id="bloco-mensal" class="hidden panel rounded-xl p-4">
-          <p class="text-sm font-semibold mb-3">Histórico mensal — % Produtividade e % Utilização</p>
-          <canvas id="chart-mensal" height="180"></canvas>
+      <!-- fora dos blocos do período: o histórico aparece mesmo quando o período filtrado está vazio -->
+      <div id="bloco-mensal" class="hidden panel rounded-xl p-4">
+        <div class="flex items-baseline justify-between gap-3 mb-3 flex-wrap">
+          <p class="text-sm font-semibold">Histórico mensal — % Produtividade e % Utilização</p>
+          <p class="text-[11px] text-[var(--text-dim)]">Todos os meses salvos · não depende do período filtrado</p>
         </div>
+        <canvas id="chart-mensal" height="180"></canvas>
+      </div>
 
+      <div id="dash-conteudo-2" class="hidden space-y-5 fade-in">
         <div id="bloco-comparativo" class="hidden panel rounded-xl p-4">
           <p class="text-sm font-semibold mb-3">Comparativo entre operadores (médias do período)</p>
           <canvas id="chart-comparativo" height="180"></canvas>
@@ -838,6 +844,12 @@ function montarApp(){
     $('#painel-' + nome).classList.remove('hidden');
     if (nome === 'dashboard') {
       popularSelectOperadorDashboard();
+      // primeira abertura: carrega o mês atual sozinho, sem precisar clicar em Buscar
+      if (!dashboardJaBuscou) {
+        dashboardPrecisaRerender = false;
+        buscarIndicadoresDashboard({ automatico: true });
+        return;
+      }
       // uma revisão aprovada em outra aba muda as horas trabalhadas daqui
       if (dashboardPrecisaRerender && linhasDashboardAtuais.length) {
         dashboardPrecisaRerender = false;
@@ -1034,6 +1046,7 @@ function montarApp(){
       const resultado = $('#import-resultado');
       resultado.classList.remove('hidden');
       resultado.innerHTML = `<p class="text-[var(--ok)]">${salvos} indicadores diários (operador × dia) salvos com sucesso${substituirTudo ? ' (substituídos do zero)' : ''}.</p>`;
+      dashboardJaBuscou = false; // o Dashboard recarrega sozinho na próxima vez que abrir
       toast('Indicadores salvos com sucesso.');
     } catch (e) {
       console.error(e);
@@ -1114,6 +1127,12 @@ function montarApp(){
       }
       await batch.commit();
       salvos += lote.length;
+    }
+    // mantém o resumo do histórico mensal em dia (não impede a importação se falhar)
+    try {
+      await gravarResumos(entradas.map(([, dado]) => ({ operador: dado.operador, data: dado.data, campos: resumoDoDia(dado) })));
+    } catch (e) {
+      console.error('Falha ao atualizar o resumo mensal', e);
     }
     return salvos;
   }
@@ -1583,6 +1602,7 @@ function montarApp(){
 
   /* ============================== DASHBOARD ================================ */
   let linhasDashboardAtuais = [];
+  let historicoMensalAtual = []; // [{operador, data, efetivo, horasBaseSeg, justSeg}] de todos os dias salvos
   let comparativoAtual = false;
   let dashboardPrecisaRerender = false;
   let dadosQuantidadeDia = null;
@@ -1609,35 +1629,57 @@ function montarApp(){
     }
     if (atual && [...sel.options].some(o => o.value === atual)) sel.value = atual;
 
+    // padrão: mês atual (do dia 1 até hoje). Outro período é escolhido à mão + Buscar.
     if (!$('#dash-inicio').value) {
-      const hoje = new Date();
-      const inicio = new Date(hoje.getTime() - 30 * 86400000);
-      $('#dash-fim').value = hoje.toISOString().slice(0, 10);
-      $('#dash-inicio').value = inicio.toISOString().slice(0, 10);
+      const { inicio, fim } = periodoMesAtual();
+      $('#dash-inicio').value = inicio;
+      $('#dash-fim').value = fim;
     }
   }
 
-  $('#btn-dash-buscar').addEventListener('click', buscarIndicadoresDashboard);
+  function periodoMesAtual() {
+    const hoje = hojeOperacionalISO();
+    return { inicio: hoje.slice(0, 8) + '01', fim: hoje };
+  }
 
-  async function buscarIndicadoresDashboard() {
+  // o Dashboard busca sozinho na primeira vez que abre; depois só pelo botão
+  let dashboardJaBuscou = false;
+
+  $('#btn-dash-buscar').addEventListener('click', () => buscarIndicadoresDashboard());
+
+  function mostrarConteudoDashboard(visivel) {
+    $('#dash-conteudo').classList.toggle('hidden', !visivel);
+    $('#dash-conteudo-2').classList.toggle('hidden', !visivel);
+  }
+
+  async function buscarIndicadoresDashboard({ automatico = false } = {}) {
     const operadorSel = $('#dash-operador').value;
     let inicio = $('#dash-inicio').value;
     let fim = $('#dash-fim').value;
     if (!operadorSel || !inicio || !fim) return;
+    dashboardJaBuscou = true;
     const inicioPedido = inicio, fimPedido = fim;
 
     $('#dash-loading').classList.remove('hidden');
     $('#dash-vazio').classList.add('hidden');
-    $('#dash-conteudo').classList.add('hidden');
+    mostrarConteudoDashboard(false);
 
     try {
       const operadoresAlvo = operadorSel === '__todos__' ? estado.operadoresRegistrados : [operadorSel];
 
-      let linhas = await coletarLinhas(operadoresAlvo, inicio, fim);
+      // período e histórico mensal em paralelo; o histórico não usa o período
+      const [linhasPeriodo, historico] = await Promise.all([
+        coletarLinhas(operadoresAlvo, inicio, fim),
+        carregarHistoricoMensal(operadoresAlvo).catch(e => { console.error(e); return null; }),
+      ]);
+      let linhas = linhasPeriodo;
+      historicoMensalAtual = historico || [];
+      renderGraficoMensal();
 
-      // Se não achou nada no período escolhido, tenta descobrir automaticamente
+      // Se não achou nada no período escolhido à mão, tenta descobrir automaticamente
       // o período real em que existem dados salvos, em vez de simplesmente dizer "vazio".
-      if (!linhas.length) {
+      // Na abertura automática (mês atual) não pula pra outro período.
+      if (!linhas.length && !automatico) {
         const tudo = await coletarLinhas(operadoresAlvo, null, null);
         if (tudo.length) {
           const datas = tudo.map(l => l.data).sort();
@@ -1653,19 +1695,90 @@ function montarApp(){
       linhas.sort((a, b) => a.data < b.data ? -1 : a.data > b.data ? 1 : 0);
 
       if (!linhas.length) {
+        linhasDashboardAtuais = [];
         $('#dash-vazio').classList.remove('hidden');
-        $('#dash-vazio').textContent = 'Nenhum indicador salvo ainda para esse operador. Confira se na aba Importar você clicou em "Calcular e salvar indicadores" depois de subir a planilha.';
+        const mesAtual = periodoMesAtual();
+        const ehMesAtual = inicioPedido === mesAtual.inicio && fimPedido === mesAtual.fim;
+        $('#dash-vazio').textContent = automatico
+          ? `Ainda não há indicadores salvos ${ehMesAtual ? 'no mês atual' : 'no período'} (${formatDataBR(inicioPedido)} a ${formatDataBR(fimPedido)}). Importe o relatório na aba Importar, ou escolha outro período e clique em Buscar.`
+          : 'Nenhum indicador salvo ainda para esse operador. Confira se na aba Importar você clicou em "Calcular e salvar indicadores" depois de subir a planilha.';
         return;
       }
 
       renderDashboard(linhas, operadorSel === '__todos__');
-      $('#dash-conteudo').classList.remove('hidden');
+      mostrarConteudoDashboard(true);
     } catch (e) {
       console.error(e);
       toast('Erro ao buscar indicadores: ' + (e.message || e), 'erro');
     } finally {
       $('#dash-loading').classList.add('hidden');
     }
+  }
+
+  /* ---------------- resumo leve por dia (alimenta o histórico mensal) ----------------
+     Cada dia salvo em indicadores_diarios carrega até 200 movimentações e a lista
+     de paradas — ler o ano inteiro a cada abertura do Dashboard seria lento e caro.
+     Por isso cada mês tem um documento resumo_mensal/{AAAA-MM} só com o necessário:
+       dias: { "Operador|AAAA-MM-DD": { efetivo, horasBaseSeg, justSeg } }
+     Ele é atualizado em toda importação e em toda revisão de parada. */
+  const VERSAO_RESUMO = 1;
+
+  function resumoDoDia(dado) {
+    return {
+      efetivo: dado.efetivo || 0,
+      horasBaseSeg: dado.horasTrabalhadasBaseSeg ?? (dado.horasTrabalhadasSeg || 0),
+      justSeg: tempoJustificadoTotal(dado),
+    };
+  }
+
+  // entradas: [{ operador, data, campos, soSeExistir }]
+  async function gravarResumos(entradas) {
+    const porMes = new Map();
+    for (const e of entradas) {
+      const mes = e.data.slice(0, 7);
+      if (!porMes.has(mes)) porMes.set(mes, []);
+      porMes.get(mes).push(e);
+    }
+    for (const [mes, lista] of porMes) {
+      const ref = doc(db, 'resumo_mensal', mes);
+      const snap = await getDoc(ref);
+      const dias = { ...((snap.exists() && snap.data().dias) || {}) };
+      let mudou = false;
+      for (const e of lista) {
+        const chave = `${e.operador}|${e.data}`;
+        if (e.soSeExistir && !dias[chave]) continue;
+        dias[chave] = { ...(dias[chave] || {}), ...e.campos };
+        mudou = true;
+      }
+      if (mudou) await setDoc(ref, { mes, dias, atualizadoEm: new Date().toISOString() });
+    }
+  }
+
+  // Na primeira abertura depois desta versão, monta o resumo a partir do que já existe.
+  async function garantirResumoMensal() {
+    const flagRef = doc(db, 'meta', 'resumo_mensal');
+    const flag = await getDoc(flagRef);
+    if (flag.exists() && flag.data().versao === VERSAO_RESUMO) return;
+    toast('Montando o histórico mensal pela primeira vez — pode levar alguns segundos.');
+    const todas = await buscarLinhasPeriodo(null, null);
+    await gravarResumos(todas.map(l => ({ operador: l.operador, data: l.data, campos: resumoDoDia(l) })));
+    await setDoc(flagRef, { versao: VERSAO_RESUMO, montadoEm: new Date().toISOString() });
+  }
+
+  async function carregarHistoricoMensal(operadores) {
+    await garantirResumoMensal();
+    const snap = await getDocs(query(collection(db, 'resumo_mensal')));
+    const linhas = [];
+    for (const d of snap.docs) {
+      const dias = d.data().dias || {};
+      for (const [chave, v] of Object.entries(dias)) {
+        const i = chave.lastIndexOf('|');
+        const operador = chave.slice(0, i), data = chave.slice(i + 1);
+        if (!operadores.includes(operador)) continue;
+        linhas.push({ operador, data, efetivo: v.efetivo || 0, horasBaseSeg: v.horasBaseSeg || 0, justSeg: v.justSeg || 0 });
+      }
+    }
+    return linhas;
   }
 
   async function coletarLinhas(operadores, inicio, fim) {
@@ -1774,7 +1887,20 @@ function montarApp(){
       options: baseOptions((v) => v + '%')
     });
 
-    // histórico mensal — mesmas duas métricas, agregadas por mês em vez de por dia
+    renderGraficoMensal();
+    renderBlocosComparativos(linhas, comparativo);
+
+    linhasDashboardAtuais = linhas;
+    renderTabelaDashboard();
+  }
+
+  // Histórico mensal: usa o resumo de TODOS os dias salvos (historicoMensalAtual),
+  // não as linhas do período filtrado.
+  function renderGraficoMensal() {
+    const linhas = historicoMensalAtual.map(r => enriquecer({
+      operador: r.operador, data: r.data, efetivo: r.efetivo,
+      horasTrabalhadasBaseSeg: (r.horasBaseSeg || 0) + (r.justSeg || 0), verificarList: [],
+    }));
     const porMes = {};
     for (const l of linhas) {
       const mes = l.data.slice(0, 7); // 'AAAA-MM'
@@ -1822,7 +1948,9 @@ function montarApp(){
     } else {
       $('#bloco-mensal').classList.add('hidden');
     }
+  }
 
+  function renderBlocosComparativos(linhas, comparativo) {
     if (comparativo) {
       $('#bloco-comparativo').classList.remove('hidden');
       const porOperador = {};
@@ -1902,9 +2030,6 @@ function montarApp(){
       $('#bloco-quantidade-dia').classList.add('hidden');
       $('#bloco-quantidade-total').classList.add('hidden');
     }
-
-    linhasDashboardAtuais = linhas;
-    renderTabelaDashboard();
   }
 
   const PALETA_OPERADORES = ['#3b82f6', '#22c55e', '#f5a623', '#ef4444', '#a855f7', '#06b6d4', '#ec4899', '#84cc16', '#f97316', '#14b8a6'];
@@ -2217,6 +2342,9 @@ function montarApp(){
     try {
       // grava sempre a lista completa do dia, mesmo quando o modal está filtrado por hora
       await setDoc(doc(db, 'indicadores_diarios', chave), { verificarList: linha.verificarList }, { merge: true });
+      // tempo aprovado entra no histórico mensal também
+      gravarResumos([{ operador: linha.operador, data: linha.data, campos: { justSeg: tempoJustificadoTotal(linha) }, soSeExistir: true }])
+        .catch(e => console.error('Falha ao atualizar o resumo mensal', e));
       toast(status === 'aprovado'
         ? `Aprovado — ${segParaHMS(item.revisao.tempoJustificadoSeg)} somado nas horas trabalhadas.`
         : 'Marcado como reprovado.');
@@ -2232,6 +2360,8 @@ function montarApp(){
   // Uma revisão muda horas trabalhadas, % utilização, ineficiência e os
   // contadores de "a verificar" — atualiza o Dashboard e o Tempo Real.
   function atualizarTelasAposRevisao(linha) {
+    const noHistorico = historicoMensalAtual.find(r => r.operador === linha.operador && r.data === linha.data);
+    if (noHistorico) noHistorico.justSeg = tempoJustificadoTotal(linha);
     // a mesma operador×dia pode estar carregada no Dashboard como outro objeto
     for (const l of linhasDashboardAtuais) {
       if (l.operador === linha.operador && l.data === linha.data && l.verificarList !== linha.verificarList) {

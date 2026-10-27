@@ -390,7 +390,13 @@
         <p id="modal-movimentos-titulo" class="font-semibold"></p>
         <p id="modal-movimentos-subtitulo" class="text-xs text-[var(--text-dim)] mt-1"></p>
       </div>
-      <button id="btn-fechar-modal-movimentos" class="text-[var(--text-dim)] hover:text-[var(--text)] text-xl leading-none px-1">&times;</button>
+      <div class="flex items-center gap-2 shrink-0">
+        <button id="btn-baixar-excel-movimentos" class="bg-[var(--accent)] text-black font-semibold text-xs rounded-lg px-2 py-1.5 hover:brightness-110 transition flex items-center gap-1.5" title="Baixar as movimentações desse dia em Excel">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+          Baixar Excel
+        </button>
+        <button id="btn-fechar-modal-movimentos" class="text-[var(--text-dim)] hover:text-[var(--text)] text-xl leading-none px-1">&times;</button>
+      </div>
     </div>
     <div class="overflow-y-auto p-5">
       <table class="w-full text-xs whitespace-nowrap">
@@ -2596,8 +2602,12 @@ function montarApp(){
   });
 
   /* --------------------- modal: histórico de movimentações do dia --------------------- */
+  let linhaModalMovimentos = null;
+
   function abrirModalMovimentos(linha) {
     const lista = linha.movimentos || [];
+    linhaModalMovimentos = linha;
+    $('#btn-baixar-excel-movimentos').classList.toggle('hidden', !lista.length);
     $('#modal-movimentos-titulo').textContent = `${linha.operador} — ${formatDataBR(linha.data)}`;
     $('#modal-movimentos-subtitulo').textContent = `${linha.efetivo} movimentaç${linha.efetivo === 1 ? 'ão' : 'ões'} de porta-pallet nesse dia` +
       (lista.length && lista.length < linha.efetivo ? ` · mostrando as ${lista.length} primeiras` : '');
@@ -2663,6 +2673,65 @@ function montarApp(){
       <td class="py-1.5 pr-3 text-[var(--text-dim)]" colspan="6">Turno encerrado, mas a última importação foi antes do fim — importe o dia de novo pra registrar a parada desde ${desde}.</td>
     </tr>`;
   }
+
+  // Excel do histórico do dia: as mesmas linhas do card, incluindo a parada
+  // do fim do turno (ou o "parado até agora") quando houver.
+  $('#btn-baixar-excel-movimentos').addEventListener('click', () => {
+    const linha = linhaModalMovimentos;
+    const lista = (linha && linha.movimentos) || [];
+    if (!lista.length) {
+      toast('Esse dia não tem movimentações salvas pra exportar.', 'erro');
+      return;
+    }
+    const statusTexto = (s) => s === 'verificar' ? 'Verificar' : s === 'ok' ? 'Ok' : '1ª do dia';
+    const dataBR = formatDataBR(linha.data);
+    const linhasExport = lista.map(v => ({
+      'Data': dataBR,
+      'Operador': linha.operador,
+      'Hora': segParaHMS(v.hora),
+      'Tempo desde a anterior': v.tempoMovSeg === null || v.tempoMovSeg === undefined ? '' : segParaHMS(v.tempoMovSeg),
+      'Status': statusTexto(v.status),
+      'ID': v.id ?? '',
+      'Produto': v.produto || '',
+      'Qtd.': v.quantidade ?? '',
+      'Origem': v.origemCod || '',
+      'Local de origem': v.origemLocal || '',
+      'Destino': v.destinoCod || '',
+      'Local de destino': v.destinoLocal || '',
+      'Descrição': v.descricao || '',
+    }));
+    const sit = situacaoFimDoDia(linha);
+    if (sit && sit.tipo !== 'falta-importar') {
+      const desde = segParaHMS(sit.ultSeg % 86400);
+      const fim = segParaHMS(sit.fimTurno % 86400);
+      linhasExport.push({
+        'Data': dataBR,
+        'Operador': linha.operador,
+        'Hora': sit.tipo === 'andamento' ? 'agora' : fim,
+        'Tempo desde a anterior': segParaHMS(sit.paradoSeg),
+        'Status': sit.tipo === 'andamento' ? 'Em andamento' : 'Verificar',
+        'ID': '', 'Produto': '', 'Qtd.': '', 'Origem': '', 'Local de origem': '', 'Destino': '', 'Local de destino': '',
+        'Descrição': sit.tipo === 'andamento'
+          ? `Sem movimentação desde ${desde} (turno vai até ${fim.slice(0, 5)})`
+          : `Fim do turno — sem movimentação desde ${desde}`,
+      });
+    }
+    try {
+      const ws = XLSX.utils.json_to_sheet(linhasExport);
+      ws['!cols'] = Object.keys(linhasExport[0]).map(k => ({
+        wch: Math.min(60, Math.max(k.length + 2, ...linhasExport.map(r => String(r[k] ?? '').length + 1), 8)),
+      }));
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Movimentações');
+      XLSX.writeFile(wb, `movimentacoes_${slug(linha.operador)}_${linha.data}.xlsx`);
+      if (lista.length < (linha.efetivo || 0)) {
+        toast(`O histórico guarda até 200 movimentações por dia — o Excel tem as ${lista.length} primeiras de ${linha.efetivo}.`, 'erro');
+      }
+    } catch (e) {
+      console.error(e);
+      toast('Erro ao gerar o Excel: ' + (e.message || e), 'erro');
+    }
+  });
 
   $('#btn-fechar-modal-movimentos').addEventListener('click', () => $('#modal-movimentos').classList.add('hidden'));
   $('#modal-movimentos').addEventListener('click', (e) => {

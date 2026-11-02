@@ -1169,6 +1169,10 @@ function montarApp(){
         // meia-noite soma 24h) — a lista vem em ordem, então fica a última
         dia.ultimo = row;
         dia.ultimoSegOp = row.horaSeg + (row.dataISO !== diaOp ? 86400 : 0);
+        if (!dia.primeiro) {
+          dia.primeiro = row;
+          dia.primeiroSegOp = dia.ultimoSegOp;
+        }
         if (row.quantidade !== null && row.quantidade !== undefined && row.quantidade !== '' && !isNaN(Number(row.quantidade))) {
           dia.qtdMovimentada += Number(row.quantidade);
           dia.temQtd = true;
@@ -1222,6 +1226,32 @@ function montarApp(){
         const d = porDia[data];
         const chave = `${slug(operador)}_${data}`;
 
+        // Parada de início do turno: do começo do turno (05:20 / 15:00) até a
+        // primeira movimentação do dia. A primeira movimentação já aconteceu, então
+        // esse tempo é definitivo e entra assim que o dia é importado.
+        const inicioTurno = inicioDoTurnoSeg(params.turno);
+        if (d.primeiro && d.primeiroSegOp > inicioTurno) {
+          const gapInicio = d.primeiroSegOp - inicioTurno;
+          if (gapInicio > params.limiteVerificarSeg) {
+            const p1 = d.primeiro;
+            d.qtdVerificar += 1;
+            d.verificarList.unshift({
+              inicioDeTurno: true,
+              hora: p1.horaSeg, tempoMovSeg: gapInicio,
+              produto: p1.produto || null, descricao: p1.descricao || null,
+              origemCod: p1.origemCod || null, destinoCod: p1.destinoCod || null,
+              origemLocal: p1.origemLocal || null, destinoLocal: p1.destinoLocal || null,
+              quantidade: p1.quantidade ?? null,
+              anteriorHora: inicioTurno,
+              anteriorProduto: null, anteriorDescricao: 'Início do turno',
+              anteriorOrigemCod: null, anteriorDestinoCod: null,
+              anteriorOrigemLocal: null, anteriorDestinoLocal: null,
+              anteriorQuantidade: null,
+              revisao: { status: 'pendente', justificativa: '', revisadoPor: null, revisadoEm: null },
+            });
+          }
+        }
+
         // Parada final do dia: da última movimentação até o fim do turno. Só é
         // registrada se o turno já tinha acabado na hora da importação — antes
         // disso ainda pode vir movimentação, e a tela mostra "parado até agora".
@@ -1252,6 +1282,8 @@ function montarApp(){
 
         resultado[chave] = {
           operador, data,
+          primeiraMovSeg: d.primeiroSegOp ?? null,
+          inicioTurnoSeg: inicioTurno,
           ultimaMovSeg: d.ultimoSegOp ?? null,
           ultimaMovHora: d.ultimo ? d.ultimo.horaSeg : null,
           fimTurnoSeg: fimTurno,
@@ -1301,6 +1333,13 @@ function montarApp(){
     return Math.max(...BUCKETS_HORARIOS.filter(b => b.turno === nome).map(b => b.fim));
   }
 
+  // Início do turno em segundos a partir da 00:00: Turno 1 = 05:20 (19200),
+  // Turno 2 = 15:00 (54000).
+  function inicioDoTurnoSeg(turno) {
+    const nome = turno === 2 ? 'Turno 2' : 'Turno 1';
+    return Math.min(...BUCKETS_HORARIOS.filter(b => b.turno === nome).map(b => b.inicio));
+  }
+
   // instante (ms) de "segundos a partir da 00:00" de um dia operacional
   function instanteDoDia(dataISO, seg) {
     const [y, m, d] = dataISO.split('-').map(Number);
@@ -1334,6 +1373,29 @@ function montarApp(){
     if (atualizadoMs < instanteDoDia(linha.data, fimTurno) && fimTurno - ultSeg > params.limiteVerificarSeg) {
       return { tipo: 'falta-importar', ultSeg, fimTurno, paradoSeg: fimTurno - ultSeg, atualizadoMs };
     }
+    return null;
+  }
+
+  // Situação do início do dia (do começo do turno até a 1ª movimentação):
+  //  - 'registrada': a parada já está na lista "a verificar"
+  //  - 'falta-importar': dia salvo antes dessa regra existir — reimportar registra
+  //  - null: começou dentro do limite (ou não há movimentações)
+  function situacaoInicioDoDia(linha) {
+    if (!linha || !linha.data) return null;
+    const params = parametrosDe(linha.operador);
+    const inicioTurno = inicioDoTurnoSeg(params.turno);
+    const item = (linha.verificarList || []).find(v => v.inicioDeTurno);
+    if (item) {
+      return { tipo: 'registrada', inicioTurno, primSeg: inicioTurno + item.tempoMovSeg, paradoSeg: item.tempoMovSeg, item };
+    }
+    let primSeg = linha.primeiraMovSeg;
+    if (primSeg === null || primSeg === undefined) {
+      const horas = (linha.movimentos || []).map(m => (m.hora < LIMITE_VIRADA_DIA_SEG ? m.hora + 86400 : m.hora));
+      if (!horas.length) return null;
+      primSeg = Math.min(...horas);
+    }
+    const gap = primSeg - inicioTurno;
+    if (gap > params.limiteVerificarSeg) return { tipo: 'falta-importar', inicioTurno, primSeg, paradoSeg: gap };
     return null;
   }
 
@@ -1415,8 +1477,25 @@ function montarApp(){
   function renderAvisoParadoTR() {
     const el = $('#tr-parado');
     const sit = situacaoFimDoDia(linhaTRAtual);
-    if (!sit) { el.classList.add('hidden'); return; }
+    const sitIni = situacaoInicioDoDia(linhaTRAtual);
+    if (!sit && !sitIni) { el.classList.add('hidden'); return; }
     const hora = s => segParaHMS(s % 86400);
+    // início do turno: do começo do turno até a primeira movimentação
+    let blocoInicio = '';
+    if (sitIni) {
+      const ini = hora(sitIni.inicioTurno).slice(0, 5);
+      blocoInicio = sitIni.tipo === 'registrada'
+        ? `<p class="font-medium">Início do turno às ${ini} — primeira movimentação só às ${hora(sitIni.primSeg)} (<span class="font-mono">${segParaHMS(sitIni.paradoSeg)}</span> parado)</p>
+           <p class="text-xs text-[var(--text-dim)] mt-0.5">Essa parada está em "A verificar" na hora da primeira movimentação, pra justificar ou reprovar.</p>`
+        : `<p class="font-medium">Início do turno às ${ini} — primeira movimentação só às ${hora(sitIni.primSeg)} (<span class="font-mono">${segParaHMS(sitIni.paradoSeg)}</span> parado)</p>
+           <p class="text-xs text-[var(--text-dim)] mt-0.5">Importe o relatório do dia de novo pra registrar essa parada em "A verificar".</p>`;
+    }
+    if (!sit) {
+      el.className = 'rounded-xl px-4 py-3 text-sm';
+      el.style.cssText = 'background:rgba(217,119,6,.10); border:1px solid rgba(217,119,6,.40);';
+      el.innerHTML = blocoInicio;
+      return;
+    }
     const importacao = linhaTRAtual.atualizadoEm
       ? new Date(linhaTRAtual.atualizadoEm).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
       : null;
@@ -1434,9 +1513,11 @@ function montarApp(){
       titulo = `Turno encerrado às ${hora(sit.fimTurno).slice(0, 5)}, mas a última importação foi antes disso`;
       detalhe = `Última movimentação às ${hora(sit.ultSeg)}. Importe o relatório do dia de novo pra registrar o tempo parado até o fim do turno.`;
     }
-    el.className = cor === 'dim' ? 'panel rounded-xl px-4 py-3 text-sm' : 'rounded-xl px-4 py-3 text-sm';
-    el.style.cssText = cor === 'dim' ? '' : 'background:rgba(217,119,6,.10); border:1px solid rgba(217,119,6,.40);';
-    el.innerHTML = `<p class="font-medium">${titulo}</p><p class="text-xs text-[var(--text-dim)] mt-0.5">${detalhe}</p>`;
+    const semAviso = cor === 'dim' && !sitIni;
+    el.className = semAviso ? 'panel rounded-xl px-4 py-3 text-sm' : 'rounded-xl px-4 py-3 text-sm';
+    el.style.cssText = semAviso ? '' : 'background:rgba(217,119,6,.10); border:1px solid rgba(217,119,6,.40);';
+    el.innerHTML = (blocoInicio ? `<div class="pb-2 mb-2 border-b" style="border-color:rgba(217,119,6,.30)">${blocoInicio}</div>` : '')
+      + `<p class="font-medium">${titulo}</p><p class="text-xs text-[var(--text-dim)] mt-0.5">${detalhe}</p>`;
   }
 
   async function renderTempoReal() {
@@ -1503,8 +1584,9 @@ function montarApp(){
           const r = revisoesPorBucket.get(bucketFim) || { aprovados: 0, reprovados: 0, extras: 0 };
           if (v.revisao?.status === 'aprovado') r.aprovados++;
           else if (v.revisao?.status === 'reprovado') r.reprovados++;
-          // a parada final não é uma movimentação, então não está na contagem por hora
-          if (v.fimDeTurno) r.extras++;
+          // as paradas de início/fim de turno não são movimentações com status
+          // "verificar", então não estão na contagem por hora
+          if (v.fimDeTurno || v.inicioDeTurno) r.extras++;
           revisoesPorBucket.set(bucketFim, r);
         }
         const just = tempoJustificadoDoItem(v);
@@ -2261,15 +2343,20 @@ function montarApp(){
   // Linha curta embaixo do nome do operador: parado agora (turno em andamento)
   // ou turno já encerrado sem a importação que fecha o dia.
   function avisoFimDoDiaTabela(l) {
+    let html = '';
+    const ini = situacaoInicioDoDia(l);
+    if (ini && ini.tipo === 'falta-importar') {
+      html += `<span class="block text-[10px] text-[var(--warn)]" title="Esse dia foi salvo antes de registrarmos o início do turno. Importe de novo pra registrar a parada de ${segParaHMS(ini.paradoSeg)} (do começo do turno até a 1ª movimentação)">início do turno sem registro — reimportar</span>`;
+    }
     const sit = situacaoFimDoDia(l);
-    if (!sit) return '';
+    if (!sit) return html;
     if (sit.tipo === 'andamento' && sit.paradoSeg > sit.limite) {
-      return `<span class="block text-[10px] text-[var(--warn)]" title="Desde a última movimentação importada (${segParaHMS(sit.ultSeg % 86400)})">sem movimentar há ${segParaHMS(sit.paradoSeg)}</span>`;
+      html += `<span class="block text-[10px] text-[var(--warn)]" title="Desde a última movimentação importada (${segParaHMS(sit.ultSeg % 86400)})">sem movimentar há ${segParaHMS(sit.paradoSeg)}</span>`;
     }
     if (sit.tipo === 'falta-importar') {
-      return `<span class="block text-[10px] text-[var(--warn)]" title="Importe o dia de novo pra registrar a parada até o fim do turno">turno sem fechamento — reimportar</span>`;
+      html += `<span class="block text-[10px] text-[var(--warn)]" title="Importe o dia de novo pra registrar a parada até o fim do turno">turno sem fechamento — reimportar</span>`;
     }
-    return '';
+    return html;
   }
 
   function renderTabelaDashboard() {
@@ -2437,12 +2524,15 @@ function montarApp(){
       <div class="panel-2 rounded-xl p-3 space-y-2" data-item-idx="${i}" data-max-seg="${maxSeg}">
         <div class="flex items-start justify-between gap-2 flex-wrap">
           <div class="space-y-1">
-            ${blocoMovimento({
-              rotulo: 'Parou', hora: v.anteriorHora, produto: v.anteriorProduto, quantidade: v.anteriorQuantidade,
-              origemCod: v.anteriorOrigemCod, origemLocal: v.anteriorOrigemLocal,
-              destinoCod: v.anteriorDestinoCod, destinoLocal: v.anteriorDestinoLocal,
-              descricao: v.anteriorDescricao,
-            })}
+            ${v.inicioDeTurno
+              ? `<p class="text-xs"><span class="text-[var(--text-dim)]">Início do turno às</span> <span class="font-mono">${segParaHMS(v.anteriorHora)}</span></p>
+                 <p class="text-[11px] text-[var(--text-dim)]">Sem nenhuma movimentação do começo do turno até a primeira do dia.</p>`
+              : blocoMovimento({
+                  rotulo: 'Parou', hora: v.anteriorHora, produto: v.anteriorProduto, quantidade: v.anteriorQuantidade,
+                  origemCod: v.anteriorOrigemCod, origemLocal: v.anteriorOrigemLocal,
+                  destinoCod: v.anteriorDestinoCod, destinoLocal: v.anteriorDestinoLocal,
+                  descricao: v.anteriorDescricao,
+                })}
           </div>
           ${statusBadge}
         </div>
@@ -2451,7 +2541,8 @@ function montarApp(){
           ? `<p class="text-xs"><span class="text-[var(--text-dim)]">Fim do turno em</span> <span class="font-mono">${segParaHMS(v.hora)}</span>, <span class="font-mono text-[var(--warn)]">${segParaHMS(v.tempoMovSeg)}</span> depois</p>
              <p class="text-[11px] text-[var(--text-dim)]">Sem nenhuma movimentação da última até o fim do turno.</p>`
           : blocoMovimento({
-              rotulo: 'Retomou', hora: v.hora, tempoDepois: v.tempoMovSeg, produto: v.produto, quantidade: v.quantidade,
+              rotulo: v.inicioDeTurno ? '1ª movimentação' : 'Retomou',
+              hora: v.hora, tempoDepois: v.tempoMovSeg, produto: v.produto, quantidade: v.quantidade,
               origemCod: v.origemCod, origemLocal: v.origemLocal,
               destinoCod: v.destinoCod, destinoLocal: v.destinoLocal,
               descricao: v.descricao,
@@ -2630,7 +2721,7 @@ function montarApp(){
         ? `<span class="badge-ok px-2 py-0.5 rounded-md">Ok</span>`
         : `<span class="text-[var(--text-dim)]">1ª do dia</span>`;
 
-    corpo.innerHTML = lista.map(v => `
+    corpo.innerHTML = linhaInicioDoDiaMovimentos(linha) + lista.map(v => `
       <tr class="border-b border-[var(--border)]/50">
         <td class="py-1.5 pr-3 font-mono">${segParaHMS(v.hora)}</td>
         <td class="py-1.5 pr-3 font-mono ${v.status === 'verificar' ? 'text-[var(--warn)]' : ''}">${segParaHMS(v.tempoMovSeg)}</td>
@@ -2644,6 +2735,27 @@ function montarApp(){
     `).join('') + linhaFimDoDiaMovimentos(linha);
 
     $('#modal-movimentos').classList.remove('hidden');
+  }
+
+  // Primeira linha da lista: do começo do turno até a 1ª movimentação do dia.
+  function linhaInicioDoDiaMovimentos(linha) {
+    const sit = situacaoInicioDoDia(linha);
+    if (!sit) return '';
+    const ini = segParaHMS(sit.inicioTurno);
+    const prim = segParaHMS(sit.primSeg % 86400);
+    if (sit.tipo === 'registrada') {
+      return `<tr style="background:rgba(217,119,6,.08)">
+        <td class="py-1.5 pr-3 font-mono">${ini}</td>
+        <td class="py-1.5 pr-3 font-mono text-[var(--warn)]">${segParaHMS(sit.paradoSeg)}</td>
+        <td class="py-1.5 pr-3 text-[var(--text-dim)]" colspan="5">Início do turno — sem movimentação até a primeira do dia, às ${prim}</td>
+        <td class="py-1.5 pr-3"><span class="badge-warn px-2 py-0.5 rounded-md">Verificar</span></td>
+      </tr>`;
+    }
+    return `<tr style="background:rgba(217,119,6,.08)">
+      <td class="py-1.5 pr-3 font-mono">${ini}</td>
+      <td class="py-1.5 pr-3 font-mono">${segParaHMS(sit.paradoSeg)}</td>
+      <td class="py-1.5 pr-3 text-[var(--text-dim)]" colspan="6">Início do turno — a primeira movimentação foi só às ${prim}. Esse dia foi salvo antes de registrarmos essa parada: importe de novo pra ela entrar em "A verificar".</td>
+    </tr>`;
   }
 
   function linhaFimDoDiaMovimentos(linha) {
@@ -2700,6 +2812,19 @@ function montarApp(){
       'Local de destino': v.destinoLocal || '',
       'Descrição': v.descricao || '',
     }));
+    const sitIni = situacaoInicioDoDia(linha);
+    if (sitIni) {
+      const prim = segParaHMS(sitIni.primSeg % 86400);
+      linhasExport.unshift({
+        'Data': dataBR,
+        'Operador': linha.operador,
+        'Hora': segParaHMS(sitIni.inicioTurno),
+        'Tempo desde a anterior': segParaHMS(sitIni.paradoSeg),
+        'Status': sitIni.tipo === 'registrada' ? 'Verificar' : 'Verificar (ainda não registrada)',
+        'ID': '', 'Produto': '', 'Qtd.': '', 'Origem': '', 'Local de origem': '', 'Destino': '', 'Local de destino': '',
+        'Descrição': `Início do turno — sem movimentação até a primeira do dia, às ${prim}`,
+      });
+    }
     const sit = situacaoFimDoDia(linha);
     if (sit && sit.tipo !== 'falta-importar') {
       const desde = segParaHMS(sit.ultSeg % 86400);

@@ -544,11 +544,12 @@
         </div>
         <p id="exp-import-erro" class="hidden text-sm text-[var(--danger)] mt-3"></p>
         <div id="exp-import-resumo" class="hidden mt-4 text-sm space-y-1"></div>
+        <div id="exp-import-comparacao" class="hidden mt-3 text-sm"></div>
         <div id="exp-import-acoes" class="hidden mt-4 flex flex-wrap items-center gap-3">
-          <button id="exp-btn-salvar" class="bg-[var(--accent)] text-black font-semibold text-sm rounded-lg px-4 py-2 hover:brightness-110 transition flex items-center gap-2">
+          <button id="exp-btn-salvar" class="bg-[var(--accent)] text-black font-semibold text-sm rounded-lg px-4 py-2 hover:brightness-110 transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
             <span>Salvar listas de separação</span>
           </button>
-          <p class="text-xs text-[var(--text-dim)]">Escolher o arquivo só mostra a pré-visualização; os dados são gravados ao clicar em salvar.</p>
+          <p class="text-xs text-[var(--text-dim)]">Escolher o arquivo só mostra a pré-visualização. Ao salvar, só as listas novas ou que mudaram são gravadas — as que já estão salvas iguais ficam como estão.</p>
         </div>
       </div>
 
@@ -561,6 +562,7 @@
           <table class="w-full text-xs">
             <thead class="sticky top-0 bg-[var(--panel-2)] text-left text-[var(--text-dim)]">
               <tr>
+                <th class="px-3 py-2 font-medium whitespace-nowrap">Situação</th>
                 <th class="px-3 py-2 font-medium whitespace-nowrap">Id</th>
                 <th class="px-3 py-2 font-medium whitespace-nowrap">Criação</th>
                 <th class="px-3 py-2 font-medium whitespace-nowrap">Conclusão</th>
@@ -1240,6 +1242,16 @@ function montarApp(){
     if (faltando.length) throw new Error('Faltam colunas no relatório: ' + faltando.join(', ') + '.');
 
     const porId = new Map();
+    let repetidas = 0;
+    // junta os itens de duas ocorrências da mesma lista sem repetir as linhas
+    // que já vieram na outra (dentro de uma mesma ocorrência, nada é removido)
+    const juntarItens = (a, b) => {
+      const chave = (it) => `${it.nf}|${it.item}|${it.qtd}`;
+      const restantes = new Map();
+      a.forEach(it => restantes.set(chave(it), (restantes.get(chave(it)) || 0) + 1));
+      const extras = b.filter(it => { const k = chave(it); const q = restantes.get(k) || 0; if (q > 0) { restantes.set(k, q - 1); return false; } return true; });
+      return [...a, ...extras];
+    };
     let atual = null;
     for (let r = hi + 1; r < matriz.length; r++) {
       const l = matriz[r];
@@ -1264,7 +1276,11 @@ function montarApp(){
           qtdNotas: C.notas >= 0 ? expNum(l[C.notas]) : null,
           itens: [],
         };
-        porId.set(atual.id, atual); // o mesmo Id repetido: vale o último
+        // o mesmo Id repetido no arquivo: os dados da lista vêm da última vez que
+        // ela aparece, e as notas/itens de todas as vezes são juntados (sem repetir)
+        const anterior = porId.get(atual.id);
+        if (anterior) { repetidas++; atual.itensAnteriores = anterior.itensAnteriores ? juntarItens(anterior.itensAnteriores, anterior.itens) : anterior.itens; }
+        porId.set(atual.id, atual);
         continue;
       }
       if (!atual || C.notas < 0) continue;
@@ -1274,7 +1290,12 @@ function montarApp(){
       if (expNorm(nf) === 'nota fiscal' || expNorm(item) === 'item') continue; // subcabeçalho
       atual.itens.push({ nf, item, qtd: expNum(l[C.notas + 2]) });
     }
-    return [...porId.values()];
+    const listas = [...porId.values()];
+    for (const l of listas) {
+      if (l.itensAnteriores) { l.itens = juntarItens(l.itensAnteriores, l.itens); delete l.itensAnteriores; }
+    }
+    listas.repetidasNoArquivo = repetidas;
+    return listas;
   }
 
   // Resumo de um dia a partir das listas dele (só concluídas entram).
@@ -1303,14 +1324,18 @@ function montarApp(){
   let expWorkbook = null;
   let expNomeArquivo = '';
   let expListasArquivo = [];
+  let expComparacao = null;   // { novas, alteradas, iguais, diasAntigos } depois de comparar com o banco
+  let expTokenComparacao = 0; // descarta comparações de um arquivo que já foi trocado
   function expMostrarErro(msg) {
     const el = $('#exp-import-erro');
     el.textContent = msg || '';
     el.classList.toggle('hidden', !msg);
   }
   function expLimparImportacao() {
-    ['#exp-import-resumo', '#exp-import-preview', '#exp-import-acoes'].forEach(s => $(s).classList.add('hidden'));
+    ['#exp-import-resumo', '#exp-import-comparacao', '#exp-import-preview', '#exp-import-acoes'].forEach(s => $(s).classList.add('hidden'));
     expListasArquivo = [];
+    expComparacao = null;
+    expTokenComparacao++;
   }
   $('#exp-input-arquivo').addEventListener('change', async (e) => {
     const arquivo = e.target.files && e.target.files[0];
@@ -1326,7 +1351,7 @@ function montarApp(){
         let texto;
         try { texto = new TextDecoder('utf-8', { fatal: true }).decode(dados); }
         catch { texto = new TextDecoder('windows-1252').decode(dados); }
-        expWorkbook = XLSX.read(texto.replace(/^\uFEFF/, ''), { type: 'string', raw: true });
+        expWorkbook = XLSX.read(texto.replace(/^﻿/, ''), { type: 'string', raw: true });
       } else {
         expWorkbook = XLSX.read(dados, { type: 'array' });
       }
@@ -1343,6 +1368,46 @@ function montarApp(){
     expProcessarPlanilha(expWorkbook.SheetNames[0]);
   });
   $('#exp-select-planilha').addEventListener('change', (e) => expProcessarPlanilha(e.target.value));
+
+  // "Assinatura" do conteúdo de uma lista: duas listas com o mesmo Id e a mesma
+  // assinatura são a mesma coisa — não há o que gravar de novo.
+  const EXP_CAMPOS_LISTA = ['id', 'criadaEm', 'concluidaEm', 'data', 'tempoExecSeg', 'tempoExecTexto', 'volumes', 'volHoraWms',
+    'transportadora', 'responsavel', 'status', 'qtdNotas'];
+  const expAssinatura = (l) => JSON.stringify([
+    ...EXP_CAMPOS_LISTA.map(k => l[k] ?? null),
+    (l.itens || []).map(it => [String(it.nf ?? ''), String(it.item ?? ''), it.qtd ?? null]),
+  ]);
+
+  // Compara as listas do arquivo com as já salvas (pelo Id da lista).
+  async function expCompararComSalvas(listas) {
+    const salvas = new Map();
+    // 1) as listas já salvas nos dias do arquivo (uma consulta por dia)
+    const dias = [...new Set(listas.map(l => l.data).filter(Boolean))];
+    for (const dia of dias) {
+      const snap = await getDocs(query(collection(db, 'expedicao_listas'), where('data', '==', dia)));
+      snap.docs.forEach(d => { const x = d.data(); if (x && x.id !== undefined) salvas.set(String(x.id), x); });
+    }
+    // 2) as que não apareceram ainda podem estar salvas em outro dia
+    //    (ex.: lista criada num dia e concluída no outro) — confere pelo Id
+    const faltam = listas.filter(l => !salvas.has(l.id));
+    for (let k = 0; k < faltam.length; k += 50) {
+      await Promise.all(faltam.slice(k, k + 50).map(async (l) => {
+        const s = await getDoc(doc(db, 'expedicao_listas', l.id));
+        if (s.exists()) salvas.set(l.id, s.data());
+      }));
+    }
+    const novas = [], alteradas = [], iguais = [];
+    const diasAntigos = new Set();
+    for (const l of listas) {
+      const s = salvas.get(l.id);
+      if (!s) novas.push(l);
+      else if (expAssinatura(s) !== expAssinatura(l)) {
+        alteradas.push(l);
+        if (s.data && s.data !== l.data) diasAntigos.add(s.data); // mudou de dia: refaz o resumo do dia antigo também
+      } else iguais.push(l);
+    }
+    return { novas, alteradas, iguais, diasAntigos: [...diasAntigos] };
+  }
 
   function expProcessarPlanilha(nomePlanilha) {
     if (!expWorkbook) return;
@@ -1370,6 +1435,7 @@ function montarApp(){
     const semData = listas.filter(l => !l.data).length;
     const semTempo = concluidas.filter(l => !(l.tempoExecSeg > 0)).length;
     const avisos = [];
+    if (listas.repetidasNoArquivo) avisos.push(`${listas.repetidasNoArquivo} lista(s) aparecem repetidas no arquivo (mesmo Id) — cada uma conta uma vez só.`);
     if (listas.length - concluidas.length) avisos.push(`${listas.length - concluidas.length} lista(s) não concluída(s) — são salvas, mas só as concluídas entram nos indicadores.`);
     if (semTempo) avisos.push(`${semTempo} lista(s) concluída(s) sem tempo de execução — contam nos volumes do dia, mas não na média por hora.`);
     if (semData) avisos.push(`${semData} lista(s) sem data reconhecida — não entram em nenhum dia.`);
@@ -1379,11 +1445,54 @@ function montarApp(){
       <p><span class="text-[var(--text-dim)]">Período:</span> ${datas.length ? `${formatDataBR(datas[0])} a ${formatDataBR(datas[datas.length - 1])} (${datas.length} dia(s))` : '–'}</p>
       ${avisos.map(a => `<p class="text-xs text-[var(--warn)]">${expEsc(a)}</p>`).join('')}`;
     $('#exp-import-resumo').classList.remove('hidden');
-    $('#exp-import-acoes').classList.remove('hidden');
+    expRenderPreview(listas, null);
 
+    // compara com o banco antes de liberar o botão de salvar
+    const btn = $('#exp-btn-salvar');
+    btn.disabled = true;
+    btn.innerHTML = '<span>Salvar listas de separação</span>';
+    $('#exp-import-acoes').classList.remove('hidden');
+    const comp = $('#exp-import-comparacao');
+    comp.innerHTML = '<span class="inline-flex items-center gap-2 text-[var(--text-dim)]"><span class="spinner" style="width:14px;height:14px;border-width:2px"></span> Comparando com as listas já salvas…</span>';
+    comp.classList.remove('hidden');
+    const token = ++expTokenComparacao;
+    expCompararComSalvas(listas).then((r) => {
+      if (token !== expTokenComparacao) return; // trocou de arquivo no meio
+      expComparacao = r;
+      const gravar = r.novas.length + r.alteradas.length;
+      comp.innerHTML = `
+        <p><span class="badge-ok px-1.5 py-0.5 rounded">${expFmtNum(r.novas.length)} nova(s)</span>
+        <span class="badge-warn px-1.5 py-0.5 rounded ml-1">${expFmtNum(r.alteradas.length)} atualizada(s)</span>
+        <span class="panel-2 px-1.5 py-0.5 rounded ml-1 text-[var(--text-dim)]">${expFmtNum(r.iguais.length)} já salva(s), sem mudança</span></p>
+        <p class="text-xs text-[var(--text-dim)] mt-1">${gravar
+          ? `Ao salvar, só as ${expFmtNum(gravar)} lista(s) novas/atualizadas são gravadas; as já salvas iguais não são gravadas de novo.`
+          : 'Tudo o que está nesse arquivo já está salvo — não há nada novo pra gravar.'}</p>`;
+      btn.disabled = gravar === 0;
+      btn.innerHTML = gravar ? `<span>Salvar ${expFmtNum(gravar)} lista(s)</span>` : '<span>Nada novo pra salvar</span>';
+      const situacao = new Map();
+      r.novas.forEach(l => situacao.set(l.id, 'nova'));
+      r.alteradas.forEach(l => situacao.set(l.id, 'atualizada'));
+      r.iguais.forEach(l => situacao.set(l.id, 'igual'));
+      expRenderPreview(listas, situacao);
+    }).catch((err) => {
+      if (token !== expTokenComparacao) return;
+      console.error(err);
+      comp.innerHTML = `<p class="text-[var(--danger)]">Não consegui comparar com as listas já salvas: ${expEsc(err.message || err)}</p>`;
+    });
+  }
+
+  function expRenderPreview(listas, situacao) {
     const LIMITE = 300;
+    const etiqueta = (id) => {
+      const s = situacao && situacao.get(id);
+      if (s === 'nova') return '<span class="badge-ok px-1.5 py-0.5 rounded">Nova</span>';
+      if (s === 'atualizada') return '<span class="badge-warn px-1.5 py-0.5 rounded">Atualizada</span>';
+      if (s === 'igual') return '<span class="text-[var(--text-dim)]">Já salva</span>';
+      return '<span class="text-[var(--text-dim)]">…</span>';
+    };
     $('#exp-preview-corpo').innerHTML = listas.slice(0, LIMITE).map(l => `
-      <tr class="border-b border-[var(--border)]/50">
+      <tr class="border-b border-[var(--border)]/50" data-exp-id="${expEsc(l.id)}">
+        <td class="px-3 py-1.5 whitespace-nowrap">${etiqueta(l.id)}</td>
         <td class="px-3 py-1.5 font-mono whitespace-nowrap">${expEsc(l.id)}</td>
         <td class="px-3 py-1.5 font-mono whitespace-nowrap">${expFmtDataHora(l.criadaEm)}</td>
         <td class="px-3 py-1.5 font-mono whitespace-nowrap">${expFmtDataHora(l.concluidaEm)}</td>
@@ -1403,29 +1512,32 @@ function montarApp(){
 
   let expSalvando = false;
   $('#exp-btn-salvar').addEventListener('click', async () => {
-    if (expSalvando || !expListasArquivo.length) return;
+    if (expSalvando || !expComparacao) return;
+    const { novas, alteradas, iguais, diasAntigos } = expComparacao;
+    const gravar = [...novas, ...alteradas];
+    if (!gravar.length) return;
     expSalvando = true;
     const btn = $('#exp-btn-salvar');
-    const textoOriginal = btn.innerHTML;
     btn.disabled = true;
     btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px"></div><span>Salvando…</span>';
     try {
-      const listas = expListasArquivo;
       const agora = new Date().toISOString();
-      for (let k = 0; k < listas.length; k += 400) {
+      for (let k = 0; k < gravar.length; k += 400) {
         const batch = writeBatch(db);
-        for (const l of listas.slice(k, k + 400)) {
+        for (const l of gravar.slice(k, k + 400)) {
           batch.set(doc(db, 'expedicao_listas', l.id), { ...l, atualizadoEm: agora });
         }
         await batch.commit();
       }
-      // refaz o resumo de cada dia que apareceu no arquivo, com todas as listas salvas desse dia
-      const dias = [...new Set(listas.map(l => l.data).filter(Boolean))];
+      // refaz o resumo só dos dias que mudaram, com todas as listas salvas de cada um
+      const dias = [...new Set([...gravar.map(l => l.data), ...diasAntigos].filter(Boolean))];
       for (const dia of dias) {
         const snap = await getDocs(query(collection(db, 'expedicao_listas'), where('data', '==', dia)));
         await setDoc(doc(db, 'expedicao_dias', dia), expResumirDia(dia, snap.docs.map(d => d.data())));
       }
-      toast(`${expFmtNum(listas.length)} lista(s) salva(s) · indicadores de ${dias.length} dia(s) atualizados.`);
+      toast(`${expFmtNum(novas.length)} lista(s) nova(s) e ${expFmtNum(alteradas.length)} atualizada(s) salvas`
+        + (iguais.length ? ` · ${expFmtNum(iguais.length)} já estavam salvas e não foram gravadas de novo` : '')
+        + ` · indicadores de ${dias.length} dia(s) atualizados.`);
       $('#exp-input-arquivo').value = '';
       $('#exp-select-planilha').classList.add('hidden');
       expLimparImportacao();
@@ -1433,10 +1545,10 @@ function montarApp(){
     } catch (err) {
       console.error(err);
       toast('Erro ao salvar as listas: ' + (err.message || err), 'erro');
+      btn.disabled = false;
+      btn.innerHTML = `<span>Salvar ${expFmtNum(gravar.length)} lista(s)</span>`;
     } finally {
       expSalvando = false;
-      btn.disabled = false;
-      btn.innerHTML = textoOriginal;
     }
   });
 

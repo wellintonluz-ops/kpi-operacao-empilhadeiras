@@ -565,29 +565,22 @@
     <!-- ============ EXPEDIÇÃO · CONFIGURAÇÕES ============ -->
     <section id="exp-painel-config" class="exp-panel space-y-5 hidden">
       <div class="panel rounded-xl p-5">
-        <h2 class="font-semibold mb-1">Metas da operação</h2>
-        <p class="text-sm text-[var(--text-dim)] mb-4">
-          Usadas no Dashboard quando o filtro está em <b>Todos os turnos</b> (linha Geral) ou num turno, com
-          <b>Separador: Todos</b>. Deixe em branco o que não tiver meta. Alterar aqui não precisa reimportar.
-          As horas trabalhadas são a soma do tempo de execução das listas concluídas; aqui a meta é da equipe toda
-          no dia (ex.: 3 separadores × 7h = 21h).
+        <h2 class="font-semibold mb-1">Como fica a meta da equipe</h2>
+        <p class="text-sm text-[var(--text-dim)]">
+          Com <b>Separador: Todos</b> no Dashboard, a meta de cada dia é a <b>soma das metas individuais de quem é
+          separador e separou naquele dia</b> (no turno filtrado). Quem não é separador tem os volumes e as horas somados
+          normalmente, mas não soma meta. Ex.: duas pessoas separaram, cada separador deve fazer 100 volumes/dia, mas
+          uma delas não é separador → a meta do dia é 100, e os volumes das duas contam. A meta de volumes por hora da
+          equipe é a média das metas dos separadores, ponderada pelas horas que cada um trabalhou.
         </p>
-        <div class="overflow-x-auto">
-          <table class="w-full text-sm max-w-[960px]">
-            <thead class="text-left text-xs text-[var(--text-dim)]">
-              <tr><th class="py-2 pr-3 font-medium">Turno</th><th class="py-2 pr-3 font-medium">Meta de volumes por hora</th><th class="py-2 pr-3 font-medium">Meta de volumes por dia</th><th class="py-2 font-medium">Meta de horas trabalhadas por dia (h)</th></tr>
-            </thead>
-            <tbody id="exp-cfg-turnos"></tbody>
-          </table>
-        </div>
       </div>
 
       <div class="panel rounded-xl p-5">
-        <h2 class="font-semibold mb-1">Separadores</h2>
+        <h2 class="font-semibold mb-1">Pessoas que separaram</h2>
         <p class="text-sm text-[var(--text-dim)] mb-4">
-          O turno de cada separador define em qual turno ele aparece no filtro do Dashboard. As metas individuais
-          são usadas quando ele é escolhido no filtro de Separador. Separadores novos aparecem aqui sozinhos depois da
-          importação e começam no Turno 1, com meta de 7h trabalhadas por dia (como nas empilhadeiras).
+          Marque quem é separador — só eles entram no cálculo de meta. O turno define em qual turno a pessoa aparece
+          no filtro do Dashboard. Quem aparece numa importação nova entra aqui sozinho, como separador, no Turno 1 e com
+          meta de 7h trabalhadas por dia (como nas empilhadeiras). Meta em branco = sem meta.
         </p>
         <div id="exp-cfg-vazio" class="hidden text-sm text-[var(--text-dim)]">Nenhum separador ainda — eles aparecem aqui depois da primeira importação.</div>
         <div id="exp-cfg-separadores" class="space-y-3"></div>
@@ -1238,16 +1231,11 @@ function montarApp(){
 
   // ---------- Configurações (metas e turnos) ----------
   // config/expedicao = {
-  //   turnos: { geral: {metaVolHora, metaVolDia}, '1': {...}, '2': {...} },
-  //   separadores: { 'Nome': { turno: 1|2, metaVolHora, metaVolDia, metaHorasDia } }
+  //   separadores: { 'Nome': { turno: 1|2, separador: true|false, metaVolHora, metaVolDia, metaHorasDia } }
+  //   (turnos: metas fixas antigas por turno — não são mais usadas)
   // }  (meta em branco = null = sem meta; metaHorasDia em horas — separador
   //     ainda não configurado usa a jornada padrão de 7h, como nas empilhadeiras)
   const EXP_JORNADA_PADRAO_H = PARAM_PADRAO.horasEstimadasSeg / 3600;
-  const EXP_TURNOS = [
-    { id: 'geral', nome: 'Geral (todos os turnos)' },
-    { id: '1', nome: 'Turno 1 (05:20–14:20)' },
-    { id: '2', nome: 'Turno 2 (15:00–00:04)' },
-  ];
   let expConfig = { turnos: {}, separadores: {} };
   let expConfigCarregada = false;
   async function expGarantirConfig() {
@@ -1264,26 +1252,18 @@ function montarApp(){
     return h ? Math.round(h * 3600) : null;
   };
   const expMetaNum = (v) => (v === null || v === undefined || v === '' || !isFinite(Number(v)) || Number(v) <= 0) ? null : Number(v);
-  // metas que valem para o filtro atual
-  function expMetasDoFiltro(turno, separador) {
-    const m = separador !== '__todos__' ? (expConfig.separadores[separador] || {}) : (expConfig.turnos[turno === 'todos' ? 'geral' : turno] || {});
-    return { volHora: expMetaNum(m.metaVolHora), volDia: expMetaNum(m.metaVolDia), horasDiaSeg: expMetaHorasSeg(m, separador !== '__todos__') };
+  // quem não tiver a caixa "É separador" desmarcada é separador (padrão)
+  const expEhSeparador = (nome) => !(expConfig.separadores[nome] && expConfig.separadores[nome].separador === false);
+  // metas individuais; quem não é separador não tem meta
+  function expMetasIndividuais(nome) {
+    if (!expEhSeparador(nome)) return { volHora: null, volDia: null, horasDiaSeg: null };
+    const m = expConfig.separadores[nome] || {};
+    return { volHora: expMetaNum(m.metaVolHora), volDia: expMetaNum(m.metaVolDia), horasDiaSeg: expMetaHorasSeg(m, true) };
   }
 
   async function expRenderConfig() {
     try { await expGarantirConfig(); } catch (err) { console.error(err); toast('Erro ao carregar as configurações: ' + (err.message || err), 'erro'); return; }
     const valor = (v) => (expMetaNum(v) === null ? '' : String(v));
-    $('#exp-cfg-turnos').innerHTML = EXP_TURNOS.map(t => {
-      const m = expConfig.turnos[t.id] || {};
-      return `
-      <tr class="border-t border-[var(--border)]/60">
-        <td class="py-2 pr-3 whitespace-nowrap">${t.nome}</td>
-        <td class="py-2 pr-3"><input type="number" min="0" step="0.1" data-cfg-turno="${t.id}" data-campo="metaVolHora" value="${valor(m.metaVolHora)}" placeholder="sem meta" class="w-36 rounded-lg px-3 py-2 text-sm"></td>
-        <td class="py-2 pr-3"><input type="number" min="0" step="1" data-cfg-turno="${t.id}" data-campo="metaVolDia" value="${valor(m.metaVolDia)}" placeholder="sem meta" class="w-36 rounded-lg px-3 py-2 text-sm"></td>
-        <td class="py-2"><input type="number" min="0" step="0.5" data-cfg-turno="${t.id}" data-campo="metaHorasDia" value="${valor(m.metaHorasDia)}" placeholder="sem meta" class="w-36 rounded-lg px-3 py-2 text-sm"></td>
-      </tr>`;
-    }).join('');
-
     // separadores: os já configurados + os que aparecem nos dados
     const nomes = new Set(Object.keys(expConfig.separadores));
     try {
@@ -1295,10 +1275,18 @@ function montarApp(){
     $('#exp-cfg-separadores').innerHTML = lista.map(nome => {
       const s = expConfig.separadores[nome] || {};
       const turno = expTurnoDe(nome);
+      const ehSep = expEhSeparador(nome);
       return `
       <div class="panel-2 rounded-xl p-4" data-cfg-sep="${expEsc(nome)}">
-        <p class="font-semibold text-sm mb-3">${expEsc(nome)}</p>
-        <div class="grid sm:grid-cols-4 gap-3 max-w-[960px]">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <p class="font-semibold text-sm">${expEsc(nome)}</p>
+          <label class="inline-flex items-center gap-2 text-sm cursor-pointer select-none">
+            <input type="checkbox" data-campo="separador" class="w-4 h-4 accent-[var(--accent)]" ${ehSep ? 'checked' : ''}>
+            <span>É separador <span class="text-xs text-[var(--text-dim)]">(entra no cálculo de meta)</span></span>
+          </label>
+        </div>
+        <p class="exp-cfg-nao-sep text-xs text-[var(--warn)] mb-2 ${ehSep ? 'hidden' : ''}">Não é separador: os volumes e as horas dele contam nos totais, mas ele não soma meta.</p>
+        <div class="exp-cfg-metas grid sm:grid-cols-4 gap-3 max-w-[960px]">
           <div>
             <label class="block text-xs text-[var(--text-dim)] mb-1">Turno</label>
             <select data-campo="turno" class="w-full rounded-lg px-3 py-2 text-sm">
@@ -1321,22 +1309,29 @@ function montarApp(){
         </div>
       </div>`;
     }).join('');
+    $$('#exp-cfg-separadores [data-cfg-sep]').forEach(expAjustarCardSeparador);
   }
+  // sem a caixa "É separador": metas ficam desativadas (o turno continua valendo)
+  function expAjustarCardSeparador(card) {
+    const eh = card.querySelector('[data-campo="separador"]').checked;
+    card.querySelector('.exp-cfg-nao-sep').classList.toggle('hidden', eh);
+    card.querySelectorAll('[data-campo="metaVolHora"], [data-campo="metaVolDia"], [data-campo="metaHorasDia"]').forEach(inp => {
+      inp.disabled = !eh;
+      inp.style.opacity = eh ? '' : '.45';
+    });
+  }
+  $('#exp-cfg-separadores').addEventListener('change', (e) => {
+    if (e.target.matches('[data-campo="separador"]')) expAjustarCardSeparador(e.target.closest('[data-cfg-sep]'));
+  });
 
   $('#exp-btn-salvar-config').addEventListener('click', async () => {
     const lerMeta = (el) => { const v = expMetaNum(el.value.replace(',', '.')); return v === null ? null : Math.round(v * 10) / 10; };
-    const turnos = {};
-    EXP_TURNOS.forEach(t => {
-      turnos[t.id] = {
-        metaVolHora: lerMeta($(`[data-cfg-turno="${t.id}"][data-campo="metaVolHora"]`)),
-        metaVolDia: lerMeta($(`[data-cfg-turno="${t.id}"][data-campo="metaVolDia"]`)),
-        metaHorasDia: lerMeta($(`[data-cfg-turno="${t.id}"][data-campo="metaHorasDia"]`)),
-      };
-    });
+    const turnos = expConfig.turnos || {}; // (metas fixas por turno não são mais usadas)
     const separadores = { ...expConfig.separadores };
     $$('#exp-cfg-separadores [data-cfg-sep]').forEach(card => {
       separadores[card.dataset.cfgSep] = {
         turno: Number(card.querySelector('[data-campo="turno"]').value) === 2 ? 2 : 1,
+        separador: card.querySelector('[data-campo="separador"]').checked,
         metaVolHora: lerMeta(card.querySelector('[data-campo="metaVolHora"]')),
         metaVolDia: lerMeta(card.querySelector('[data-campo="metaVolDia"]')),
         metaHorasDia: lerMeta(card.querySelector('[data-campo="metaHorasDia"]')),
@@ -1839,7 +1834,7 @@ function montarApp(){
     }));
     if (atual !== '__todos__') nomes.add(atual); // mantém a escolha mesmo se não houver lista dele no período
     sel.innerHTML = '<option value="__todos__">Todos</option>'
-      + [...nomes].sort((a, b) => a.localeCompare(b, 'pt-BR')).map(nm => `<option value="${expEsc(nm)}">${expEsc(nm)}</option>`).join('');
+      + [...nomes].sort((a, b) => a.localeCompare(b, 'pt-BR')).map(nm => `<option value="${expEsc(nm)}">${expEsc(nm)}${expEhSeparador(nm) ? '' : ' (não separador)'}</option>`).join('');
     sel.value = atual;
   }
 
@@ -1849,25 +1844,40 @@ function montarApp(){
     const todosSep = separador === '__todos__';
     const turno = $('#exp-dash-turno').value;
     const nomeTurno = turno === 'todos' ? '' : `Turno ${turno}`;
-    const metas = expMetasDoFiltro(turno, separador);
-    // números de cada dia: do dia todo, do turno, ou só do separador escolhido
-    const somaDe = (entradas) => entradas.reduce((a, r) => {
-      a.listas += r.listas || 0; a.volumes += r.volumes || 0; a.volumesComTempo += r.volumesComTempo || 0; a.tempoExecSeg += r.tempoExecSeg || 0;
-      return a;
-    }, { listas: 0, volumes: 0, volumesComTempo: 0, tempoExecSeg: 0 });
+    // Cada dia: soma de quem separou (todos, só o turno, ou só a pessoa escolhida).
+    // A meta do dia é a soma das metas individuais de quem é separador e
+    // separou naquele dia — quem não é separador soma volumes/horas, não meta.
+    const pessoasDoDia = (d) => Object.entries(d.porResponsavel || {}).filter(([nm, r]) => r && r.listas > 0
+      && (todosSep ? (turno === 'todos' || String(expTurnoDe(nm)) === turno) : nm === separador));
     const dias = diasPeriodo.map(d => {
-      let r;
-      if (!todosSep) r = (d.porResponsavel || {})[separador];
-      else if (turno === 'todos') r = d;
-      else r = somaDe(Object.entries(d.porResponsavel || {}).filter(([nm]) => String(expTurnoDe(nm)) === turno).map(([, x]) => x));
-      return r && r.listas > 0 ? { data: d.data, listas: r.listas, volumes: r.volumes || 0, volumesComTempo: r.volumesComTempo || 0, tempoExecSeg: r.tempoExecSeg || 0 } : null;
+      const pessoas = pessoasDoDia(d);
+      if (!pessoas.length) return null;
+      const dia = { data: d.data, listas: 0, volumes: 0, volumesComTempo: 0, tempoExecSeg: 0,
+        metaVolDia: null, metaHorasSeg: null, metaVolHoraPeso: 0, metaVolHoraTempo: 0, separadores: 0, naoSeparadores: 0 };
+      for (const [nm, r] of pessoas) {
+        dia.listas += r.listas || 0; dia.volumes += r.volumes || 0;
+        dia.volumesComTempo += r.volumesComTempo || 0; dia.tempoExecSeg += r.tempoExecSeg || 0;
+        if (!expEhSeparador(nm)) { dia.naoSeparadores++; continue; }
+        dia.separadores++;
+        const m = expMetasIndividuais(nm);
+        if (m.volDia) dia.metaVolDia = (dia.metaVolDia || 0) + m.volDia;
+        if (m.horasDiaSeg) dia.metaHorasSeg = (dia.metaHorasSeg || 0) + m.horasDiaSeg;
+        // meta de volumes/hora: média das metas, ponderada pelas horas de cada separador
+        if (m.volHora && r.tempoExecSeg > 0) { dia.metaVolHoraPeso += m.volHora * r.tempoExecSeg; dia.metaVolHoraTempo += r.tempoExecSeg; }
+      }
+      dia.metaVolHora = dia.metaVolHoraTempo > 0 ? dia.metaVolHoraPeso / dia.metaVolHoraTempo : null;
+      return dia;
     }).filter(Boolean);
     const pct = (real, meta) => (meta && real !== null && real !== undefined) ? real / meta * 100 : null;
     const corPct = (p) => p === null ? 'var(--text-dim)' : p >= 100 ? 'var(--ok)' : 'var(--warn)';
     const celPct = (p) => p === null ? '<span class="text-[var(--text-dim)]">–</span>' : `<span style="color:${corPct(p)}">${expFmtNum(p, 1)}%</span>`;
-    const linhaMeta = (real, meta, casas) => meta
-      ? `<span class="text-[var(--text-dim)]">Meta ${expFmtNum(meta, casas)} ·</span> <span style="color:${corPct(pct(real, meta))}">${expFmtNum(pct(real, meta), 1)}% da meta</span>`
+    const naoSepEscolhido = !todosSep && !expEhSeparador(separador);
+    const semMetaHtml = naoSepEscolhido
+      ? '<span class="text-[var(--text-dim)]">Não é separador — sem meta</span>'
       : '<span class="text-[var(--text-dim)]">Sem meta definida (Configurações)</span>';
+    const metaHtml = (textoMeta, p) => textoMeta === null
+      ? semMetaHtml
+      : `<span class="text-[var(--text-dim)]">Meta ${textoMeta} ·</span> <span style="color:${corPct(p)}">${expFmtNum(p, 1)}% da meta</span>`;
 
     const temDados = dias.length > 0;
     $('#exp-dash-vazio').classList.toggle('hidden', temDados);
@@ -1887,20 +1897,33 @@ function montarApp(){
     const temHoje = dias.some(d => d.data === expHojeISO());
 
     $('#exp-titulo-periodo').textContent = `Separação${todosSep ? (nomeTurno ? ` — ${nomeTurno}` : '') : ` — ${separador}`} · ${formatDataBR(inicio)} a ${formatDataBR(fim)}`;
-    $('#exp-periodo').textContent = `${dias.length} dia(s) com listas concluídas no período · dias sem separação não entram nas médias`;
+    const naoSepNomes = new Set();
+    diasPeriodo.forEach(d => pessoasDoDia(d).forEach(([nm]) => { if (!expEhSeparador(nm)) naoSepNomes.add(nm); }));
+    $('#exp-periodo').textContent = `${dias.length} dia(s) com listas concluídas no período · dias sem separação não entram nas médias`
+      + (todosSep && naoSepNomes.size ? ` · ${[...naoSepNomes].join(', ')} não ${naoSepNomes.size > 1 ? 'são separadores' : 'é separador'}: os volumes contam, a meta não` : '');
     $('#exp-kpi-volhora').textContent = expFmtNum(volHora, 1);
     $('#exp-kpi-voldia').textContent = expFmtNum(volDia, 1);
-    $('#exp-kpi-volhora-meta').innerHTML = linhaMeta(volHora, metas.volHora, 1);
-    $('#exp-kpi-voldia-meta').innerHTML = linhaMeta(volDia, metas.volDia, 0);
+    // metas do período: dias com meta de volumes/dia → % = volumes desses dias ÷ soma das metas
+    const diasMetaVol = dias.filter(d => d.metaVolDia);
+    const somaMetaVol = diasMetaVol.reduce((a, d) => a + d.metaVolDia, 0);
+    const metaVolDiaMedia = diasMetaVol.length ? somaMetaVol / diasMetaVol.length : null;
+    const pctVolDia = diasMetaVol.length ? diasMetaVol.reduce((a, d) => a + d.volumes, 0) / somaMetaVol * 100 : null;
+    const pesoVH = dias.reduce((a, d) => a + d.metaVolHoraPeso, 0), tempoVH = dias.reduce((a, d) => a + d.metaVolHoraTempo, 0);
+    const metaVolHoraPeriodo = tempoVH > 0 ? pesoVH / tempoVH : null;
+    const diasMetaHoras = dias.filter(d => d.metaHorasSeg);
+    const somaMetaHoras = diasMetaHoras.reduce((a, d) => a + d.metaHorasSeg, 0);
+    const metaHorasMedia = diasMetaHoras.length ? somaMetaHoras / diasMetaHoras.length : null;
+    const pctHoras = diasMetaHoras.length ? diasMetaHoras.reduce((a, d) => a + d.tempoExecSeg, 0) / somaMetaHoras * 100 : null;
+    const varia = (lista, campo) => new Set(lista.map(d => Math.round(d[campo] * 10))).size > 1;
+    $('#exp-kpi-volhora-meta').innerHTML = metaHtml(metaVolHoraPeriodo === null ? null : expFmtNum(metaVolHoraPeriodo, 1), pct(volHora, metaVolHoraPeriodo));
+    $('#exp-kpi-voldia-meta').innerHTML = metaHtml(metaVolDiaMedia === null ? null : expFmtNum(metaVolDiaMedia, varia(diasMetaVol, 'metaVolDia') ? 1 : 0) + (varia(diasMetaVol, 'metaVolDia') ? ' (média)' : ''), pctVolDia);
     $('#exp-kpi-voldia-sub').textContent = `${expFmtNum(volumes)} volumes ÷ ${dias.length} dia(s)` + (temHoje ? ' · inclui hoje (parcial)' : '');
     $('#exp-kpi-volumes').textContent = expFmtNum(volumes);
     $('#exp-kpi-volumes-sub').textContent = `Tempo de execução: ${expFmtDuracao(tempoSeg)}`;
     // horas trabalhadas = soma do tempo de execução das listas concluídas
     const horasDiaSeg = tempoSeg / dias.length;
     $('#exp-kpi-horas').textContent = expFmtDuracao(horasDiaSeg);
-    $('#exp-kpi-horas-meta').innerHTML = metas.horasDiaSeg
-      ? `<span class="text-[var(--text-dim)]">Meta ${expFmtDuracao(metas.horasDiaSeg)} ·</span> <span style="color:${corPct(pct(horasDiaSeg, metas.horasDiaSeg))}">${expFmtNum(pct(horasDiaSeg, metas.horasDiaSeg), 1)}% da meta</span>`
-      : '<span class="text-[var(--text-dim)]">Sem meta definida (Configurações)</span>';
+    $('#exp-kpi-horas-meta').innerHTML = metaHtml(metaHorasMedia === null ? null : expFmtDuracao(metaHorasMedia) + (varia(diasMetaHoras, 'metaHorasSeg') ? ' (média)' : ''), pctHoras);
     $('#exp-kpi-horas-sub').textContent = `${expFmtDuracao(tempoSeg)} no período ÷ ${dias.length} dia(s) · soma do tempo das listas`;
     $('#exp-kpi-listas').textContent = expFmtNum(listas);
     $('#exp-kpi-listas-sub').textContent = `${expFmtNum(listas / dias.length, 1)} lista(s) por dia`;
@@ -1924,8 +1947,8 @@ function montarApp(){
         datasets: [
           { type: 'line', label: 'Volumes/hora', data: volHoraDia, yAxisID: 'y1', borderColor: '#f5a623', backgroundColor: '#f5a623', tension: .3, pointRadius: 3, spanGaps: true, order: 0 },
           { type: 'bar', label: 'Volumes separados', data: dias.map(d => d.volumes), yAxisID: 'y', backgroundColor: '#3b82f6', borderRadius: 4, maxBarThickness: 56, order: 1 },
-          ...(metas.volDia ? [{ type: 'line', label: 'Meta volumes/dia', data: dias.map(() => metas.volDia), yAxisID: 'y', borderColor: '#ef4444', backgroundColor: '#ef4444', borderWidth: 2, borderDash: [7, 5], pointStyle: 'line', pointRadius: dias.length === 1 ? 36 : 0, pointBorderWidth: 2, pointHoverRadius: 0, fill: false, tension: 0, order: -1 }] : []),
-          ...(metas.volHora ? [{ type: 'line', label: 'Meta volumes/hora', data: dias.map(() => metas.volHora), yAxisID: 'y1', borderColor: '#b45309', backgroundColor: '#b45309', borderWidth: 2, borderDash: [2, 4], pointStyle: 'line', pointRadius: dias.length === 1 ? 36 : 0, pointBorderWidth: 2, pointHoverRadius: 0, fill: false, tension: 0, order: -1 }] : []),
+          ...(diasMetaVol.length ? [{ type: 'line', label: 'Meta volumes/dia', data: dias.map(d => d.metaVolDia), spanGaps: false, yAxisID: 'y', borderColor: '#ef4444', backgroundColor: '#ef4444', borderWidth: 2, borderDash: [7, 5], pointStyle: 'line', pointRadius: dias.length === 1 ? 36 : 0, pointBorderWidth: 2, pointHoverRadius: 0, fill: false, tension: 0, order: -1 }] : []),
+          ...(metaVolHoraPeriodo !== null ? [{ type: 'line', label: 'Meta volumes/hora', data: dias.map(d => d.metaVolHora === null ? null : Math.round(d.metaVolHora * 10) / 10), spanGaps: false, yAxisID: 'y1', borderColor: '#b45309', backgroundColor: '#b45309', borderWidth: 2, borderDash: [2, 4], pointStyle: 'line', pointRadius: dias.length === 1 ? 36 : 0, pointBorderWidth: 2, pointHoverRadius: 0, fill: false, tension: 0, order: -1 }] : []),
         ],
       },
       options: opts,
@@ -1938,11 +1961,11 @@ function montarApp(){
         <td class="py-1.5 pr-3 font-mono">${formatDataBR(d.data)}${d.data === expHojeISO() ? ' <span class="text-[10px] text-[var(--text-dim)]">(hoje)</span>' : ''}</td>
         <td class="py-1.5 pr-3 font-mono text-right">${expFmtNum(d.listas)}</td>
         <td class="py-1.5 pr-3 font-mono text-right">${expFmtNum(d.volumes)}</td>
-        <td class="py-1.5 pr-3 font-mono text-right">${celPct(pct(d.volumes, metas.volDia))}</td>
+        <td class="py-1.5 pr-3 font-mono text-right" title="${d.metaVolDia ? `Meta do dia: ${expFmtNum(d.metaVolDia)} (${d.separadores} separador(es))` : ''}">${celPct(pct(d.volumes, d.metaVolDia))}</td>
         <td class="py-1.5 pr-3 font-mono text-right">${expFmtDuracao(d.tempoExecSeg)}</td>
-        <td class="py-1.5 pr-3 font-mono text-right">${celPct(pct(d.tempoExecSeg, metas.horasDiaSeg))}</td>
+        <td class="py-1.5 pr-3 font-mono text-right">${celPct(pct(d.tempoExecSeg, d.metaHorasSeg))}</td>
         <td class="py-1.5 pr-3 font-mono text-right">${d.tempoExecSeg > 0 ? expFmtNum(d.volumesComTempo / (d.tempoExecSeg / 3600), 1) : '–'}</td>
-        <td class="py-1.5 font-mono text-right">${celPct(d.tempoExecSeg > 0 ? pct(d.volumesComTempo / (d.tempoExecSeg / 3600), metas.volHora) : null)}</td>
+        <td class="py-1.5 font-mono text-right">${celPct(d.tempoExecSeg > 0 ? pct(d.volumesComTempo / (d.tempoExecSeg / 3600), d.metaVolHora) : null)}</td>
       </tr>`).join('');
 
     // por separador, somando os dias do período (todos do turno filtrado; o escolhido fica destacado)
@@ -1957,15 +1980,15 @@ function montarApp(){
     }
     $('#exp-tabela-separadores').innerHTML = Object.entries(sep).filter(([, s]) => s.listas > 0).sort((a, b) => b[1].volumes - a[1].volumes).map(([nome, s]) => `
       <tr class="border-b border-[var(--border)]/50"${!todosSep && nome === separador ? ' style="background:rgba(245,166,35,.12); font-weight:600"' : ''}>
-        <td class="py-1.5 pr-3">${expEsc(nome)}</td>
+        <td class="py-1.5 pr-3">${expEsc(nome)}${expEhSeparador(nome) ? '' : ' <span class="text-[10px] text-[var(--warn)] whitespace-nowrap">(não separador)</span>'}</td>
         <td class="py-1.5 pr-3 whitespace-nowrap">Turno ${expTurnoDe(nome)}</td>
         <td class="py-1.5 pr-3 font-mono text-right">${s.dias}</td>
         <td class="py-1.5 pr-3 font-mono text-right">${expFmtNum(s.listas)}</td>
         <td class="py-1.5 pr-3 font-mono text-right">${expFmtNum(s.volumes)}</td>
         <td class="py-1.5 pr-3 font-mono text-right">${expFmtDuracao(s.tempoExecSeg)}</td>
-        <td class="py-1.5 pr-3 font-mono text-right">${celPct(pct(s.tempoExecSeg / s.dias, expMetaHorasSeg(expConfig.separadores[nome] || {}, true)))}</td>
+        <td class="py-1.5 pr-3 font-mono text-right">${celPct(pct(s.tempoExecSeg / s.dias, expMetasIndividuais(nome).horasDiaSeg))}</td>
         <td class="py-1.5 pr-3 font-mono text-right">${s.tempoExecSeg > 0 ? expFmtNum(s.volumesComTempo / (s.tempoExecSeg / 3600), 1) : '–'}</td>
-        <td class="py-1.5 font-mono text-right">${celPct(s.tempoExecSeg > 0 ? pct(s.volumesComTempo / (s.tempoExecSeg / 3600), expMetaNum((expConfig.separadores[nome] || {}).metaVolHora)) : null)}</td>
+        <td class="py-1.5 font-mono text-right">${celPct(s.tempoExecSeg > 0 ? pct(s.volumesComTempo / (s.tempoExecSeg / 3600), expMetasIndividuais(nome).volHora) : null)}</td>
       </tr>`).join('');
   }
 

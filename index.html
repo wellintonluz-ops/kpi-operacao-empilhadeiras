@@ -499,7 +499,7 @@
           <h2 id="exp-titulo-periodo" class="font-semibold"></h2>
           <p id="exp-periodo" class="text-xs text-[var(--text-dim)] mt-0.5"></p>
         </div>
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div class="grid grid-cols-2 lg:grid-cols-5 gap-3">
           <div class="panel rounded-xl p-4" style="box-shadow:inset 3px 0 0 var(--accent)">
             <p class="text-[11px] text-[var(--text-dim)] mb-1">Média de volumes separados por hora</p>
             <p id="exp-kpi-volhora" class="text-2xl font-bold font-mono">–</p>
@@ -511,6 +511,12 @@
             <p id="exp-kpi-voldia" class="text-2xl font-bold font-mono">–</p>
             <p id="exp-kpi-voldia-meta" class="text-[11px] font-medium mt-1"></p>
             <p id="exp-kpi-voldia-sub" class="text-[10px] text-[var(--text-dim)] mt-0.5"></p>
+          </div>
+          <div class="panel rounded-xl p-4" style="box-shadow:inset 3px 0 0 var(--accent)">
+            <p class="text-[11px] text-[var(--text-dim)] mb-1">Horas trabalhadas por dia</p>
+            <p id="exp-kpi-horas" class="text-2xl font-bold font-mono">–</p>
+            <p id="exp-kpi-horas-meta" class="text-[11px] font-medium mt-1"></p>
+            <p id="exp-kpi-horas-sub" class="text-[10px] text-[var(--text-dim)] mt-0.5"></p>
           </div>
           <div class="panel rounded-xl p-4">
             <p class="text-[11px] text-[var(--text-dim)] mb-1">Volumes separados (no período)</p>
@@ -535,7 +541,7 @@
             <div class="overflow-x-auto">
               <table class="w-full text-xs">
                 <thead class="text-left text-[var(--text-dim)] border-b border-[var(--border)]">
-                  <tr><th class="py-2 pr-3 font-medium">Data</th><th class="py-2 pr-3 font-medium text-right">Listas</th><th class="py-2 pr-3 font-medium text-right">Volumes</th><th class="py-2 pr-3 font-medium text-right" title="Volumes do dia ÷ meta de volumes por dia">% meta dia</th><th class="py-2 pr-3 font-medium text-right">Tempo de execução</th><th class="py-2 pr-3 font-medium text-right">Vol./hora</th><th class="py-2 font-medium text-right" title="Volumes por hora ÷ meta de volumes por hora">% meta hora</th></tr>
+                  <tr><th class="py-2 pr-3 font-medium">Data</th><th class="py-2 pr-3 font-medium text-right">Listas</th><th class="py-2 pr-3 font-medium text-right">Volumes</th><th class="py-2 pr-3 font-medium text-right" title="Volumes do dia ÷ meta de volumes por dia">% meta dia</th><th class="py-2 pr-3 font-medium text-right">Horas trab.</th><th class="py-2 pr-3 font-medium text-right" title="Horas trabalhadas no dia ÷ meta de horas trabalhadas por dia">% meta horas</th><th class="py-2 pr-3 font-medium text-right">Vol./hora</th><th class="py-2 font-medium text-right" title="Volumes por hora ÷ meta de volumes por hora">% meta vol/h</th></tr>
                 </thead>
                 <tbody id="exp-tabela-dias"></tbody>
               </table>
@@ -546,7 +552,7 @@
             <div class="overflow-x-auto">
               <table class="w-full text-xs">
                 <thead class="text-left text-[var(--text-dim)] border-b border-[var(--border)]">
-                  <tr><th class="py-2 pr-3 font-medium">Responsável</th><th class="py-2 pr-3 font-medium">Turno</th><th class="py-2 pr-3 font-medium text-right">Dias</th><th class="py-2 pr-3 font-medium text-right">Listas</th><th class="py-2 pr-3 font-medium text-right">Volumes</th><th class="py-2 pr-3 font-medium text-right">Tempo de execução</th><th class="py-2 pr-3 font-medium text-right">Vol./hora</th><th class="py-2 font-medium text-right" title="Volumes por hora do separador ÷ meta de volumes por hora dele">% meta hora</th></tr>
+                  <tr><th class="py-2 pr-3 font-medium">Responsável</th><th class="py-2 pr-3 font-medium">Turno</th><th class="py-2 pr-3 font-medium text-right">Dias</th><th class="py-2 pr-3 font-medium text-right">Listas</th><th class="py-2 pr-3 font-medium text-right">Volumes</th><th class="py-2 pr-3 font-medium text-right">Horas trab.</th><th class="py-2 pr-3 font-medium text-right" title="Horas trabalhadas por dia do separador ÷ meta de horas dele">% meta horas</th><th class="py-2 pr-3 font-medium text-right">Vol./hora</th><th class="py-2 font-medium text-right" title="Volumes por hora do separador ÷ meta de volumes por hora dele">% meta vol/h</th></tr>
                 </thead>
                 <tbody id="exp-tabela-separadores"></tbody>
               </table>
@@ -563,11 +569,13 @@
         <p class="text-sm text-[var(--text-dim)] mb-4">
           Usadas no Dashboard quando o filtro está em <b>Todos os turnos</b> (linha Geral) ou num turno, com
           <b>Separador: Todos</b>. Deixe em branco o que não tiver meta. Alterar aqui não precisa reimportar.
+          As horas trabalhadas são a soma do tempo de execução das listas concluídas; aqui a meta é da equipe toda
+          no dia (ex.: 3 separadores × 7h = 21h).
         </p>
         <div class="overflow-x-auto">
-          <table class="w-full text-sm max-w-[720px]">
+          <table class="w-full text-sm max-w-[960px]">
             <thead class="text-left text-xs text-[var(--text-dim)]">
-              <tr><th class="py-2 pr-3 font-medium">Turno</th><th class="py-2 pr-3 font-medium">Meta de volumes por hora</th><th class="py-2 font-medium">Meta de volumes por dia</th></tr>
+              <tr><th class="py-2 pr-3 font-medium">Turno</th><th class="py-2 pr-3 font-medium">Meta de volumes por hora</th><th class="py-2 pr-3 font-medium">Meta de volumes por dia</th><th class="py-2 font-medium">Meta de horas trabalhadas por dia (h)</th></tr>
             </thead>
             <tbody id="exp-cfg-turnos"></tbody>
           </table>
@@ -579,7 +587,7 @@
         <p class="text-sm text-[var(--text-dim)] mb-4">
           O turno de cada separador define em qual turno ele aparece no filtro do Dashboard. As metas individuais
           são usadas quando ele é escolhido no filtro de Separador. Separadores novos aparecem aqui sozinhos depois da
-          importação e começam no Turno 1.
+          importação e começam no Turno 1, com meta de 7h trabalhadas por dia (como nas empilhadeiras).
         </p>
         <div id="exp-cfg-vazio" class="hidden text-sm text-[var(--text-dim)]">Nenhum separador ainda — eles aparecem aqui depois da primeira importação.</div>
         <div id="exp-cfg-separadores" class="space-y-3"></div>
@@ -1231,8 +1239,10 @@ function montarApp(){
   // ---------- Configurações (metas e turnos) ----------
   // config/expedicao = {
   //   turnos: { geral: {metaVolHora, metaVolDia}, '1': {...}, '2': {...} },
-  //   separadores: { 'Nome': { turno: 1|2, metaVolHora, metaVolDia } }
-  // }  (meta em branco = null = sem meta)
+  //   separadores: { 'Nome': { turno: 1|2, metaVolHora, metaVolDia, metaHorasDia } }
+  // }  (meta em branco = null = sem meta; metaHorasDia em horas — separador
+  //     ainda não configurado usa a jornada padrão de 7h, como nas empilhadeiras)
+  const EXP_JORNADA_PADRAO_H = PARAM_PADRAO.horasEstimadasSeg / 3600;
   const EXP_TURNOS = [
     { id: 'geral', nome: 'Geral (todos os turnos)' },
     { id: '1', nome: 'Turno 1 (05:20–14:20)' },
@@ -1248,11 +1258,16 @@ function montarApp(){
     expConfigCarregada = true;
   }
   const expTurnoDe = (nome) => (expConfig.separadores[nome] && Number(expConfig.separadores[nome].turno) === 2) ? 2 : 1;
+  // meta de horas (segundos); para separador sem configuração, a jornada padrão
+  const expMetaHorasSeg = (m, ehSeparador) => {
+    const h = (ehSeparador && (m.metaHorasDia === undefined)) ? EXP_JORNADA_PADRAO_H : expMetaNum(m.metaHorasDia);
+    return h ? Math.round(h * 3600) : null;
+  };
   const expMetaNum = (v) => (v === null || v === undefined || v === '' || !isFinite(Number(v)) || Number(v) <= 0) ? null : Number(v);
   // metas que valem para o filtro atual
   function expMetasDoFiltro(turno, separador) {
     const m = separador !== '__todos__' ? (expConfig.separadores[separador] || {}) : (expConfig.turnos[turno === 'todos' ? 'geral' : turno] || {});
-    return { volHora: expMetaNum(m.metaVolHora), volDia: expMetaNum(m.metaVolDia) };
+    return { volHora: expMetaNum(m.metaVolHora), volDia: expMetaNum(m.metaVolDia), horasDiaSeg: expMetaHorasSeg(m, separador !== '__todos__') };
   }
 
   async function expRenderConfig() {
@@ -1264,7 +1279,8 @@ function montarApp(){
       <tr class="border-t border-[var(--border)]/60">
         <td class="py-2 pr-3 whitespace-nowrap">${t.nome}</td>
         <td class="py-2 pr-3"><input type="number" min="0" step="0.1" data-cfg-turno="${t.id}" data-campo="metaVolHora" value="${valor(m.metaVolHora)}" placeholder="sem meta" class="w-36 rounded-lg px-3 py-2 text-sm"></td>
-        <td class="py-2"><input type="number" min="0" step="1" data-cfg-turno="${t.id}" data-campo="metaVolDia" value="${valor(m.metaVolDia)}" placeholder="sem meta" class="w-36 rounded-lg px-3 py-2 text-sm"></td>
+        <td class="py-2 pr-3"><input type="number" min="0" step="1" data-cfg-turno="${t.id}" data-campo="metaVolDia" value="${valor(m.metaVolDia)}" placeholder="sem meta" class="w-36 rounded-lg px-3 py-2 text-sm"></td>
+        <td class="py-2"><input type="number" min="0" step="0.5" data-cfg-turno="${t.id}" data-campo="metaHorasDia" value="${valor(m.metaHorasDia)}" placeholder="sem meta" class="w-36 rounded-lg px-3 py-2 text-sm"></td>
       </tr>`;
     }).join('');
 
@@ -1282,7 +1298,7 @@ function montarApp(){
       return `
       <div class="panel-2 rounded-xl p-4" data-cfg-sep="${expEsc(nome)}">
         <p class="font-semibold text-sm mb-3">${expEsc(nome)}</p>
-        <div class="grid sm:grid-cols-3 gap-3 max-w-[720px]">
+        <div class="grid sm:grid-cols-4 gap-3 max-w-[960px]">
           <div>
             <label class="block text-xs text-[var(--text-dim)] mb-1">Turno</label>
             <select data-campo="turno" class="w-full rounded-lg px-3 py-2 text-sm">
@@ -1298,6 +1314,10 @@ function montarApp(){
             <label class="block text-xs text-[var(--text-dim)] mb-1">Meta de volumes por dia</label>
             <input type="number" min="0" step="1" data-campo="metaVolDia" value="${valor(s.metaVolDia)}" placeholder="sem meta" class="w-full rounded-lg px-3 py-2 text-sm">
           </div>
+          <div>
+            <label class="block text-xs text-[var(--text-dim)] mb-1">Meta de horas trabalhadas (h/dia)</label>
+            <input type="number" min="0" step="0.5" data-campo="metaHorasDia" value="${s.metaHorasDia === undefined ? EXP_JORNADA_PADRAO_H : valor(s.metaHorasDia)}" placeholder="sem meta" class="w-full rounded-lg px-3 py-2 text-sm">
+          </div>
         </div>
       </div>`;
     }).join('');
@@ -1310,6 +1330,7 @@ function montarApp(){
       turnos[t.id] = {
         metaVolHora: lerMeta($(`[data-cfg-turno="${t.id}"][data-campo="metaVolHora"]`)),
         metaVolDia: lerMeta($(`[data-cfg-turno="${t.id}"][data-campo="metaVolDia"]`)),
+        metaHorasDia: lerMeta($(`[data-cfg-turno="${t.id}"][data-campo="metaHorasDia"]`)),
       };
     });
     const separadores = { ...expConfig.separadores };
@@ -1318,6 +1339,7 @@ function montarApp(){
         turno: Number(card.querySelector('[data-campo="turno"]').value) === 2 ? 2 : 1,
         metaVolHora: lerMeta(card.querySelector('[data-campo="metaVolHora"]')),
         metaVolDia: lerMeta(card.querySelector('[data-campo="metaVolDia"]')),
+        metaHorasDia: lerMeta(card.querySelector('[data-campo="metaHorasDia"]')),
       };
     });
     const btn = $('#exp-btn-salvar-config');
@@ -1873,6 +1895,13 @@ function montarApp(){
     $('#exp-kpi-voldia-sub').textContent = `${expFmtNum(volumes)} volumes ÷ ${dias.length} dia(s)` + (temHoje ? ' · inclui hoje (parcial)' : '');
     $('#exp-kpi-volumes').textContent = expFmtNum(volumes);
     $('#exp-kpi-volumes-sub').textContent = `Tempo de execução: ${expFmtDuracao(tempoSeg)}`;
+    // horas trabalhadas = soma do tempo de execução das listas concluídas
+    const horasDiaSeg = tempoSeg / dias.length;
+    $('#exp-kpi-horas').textContent = expFmtDuracao(horasDiaSeg);
+    $('#exp-kpi-horas-meta').innerHTML = metas.horasDiaSeg
+      ? `<span class="text-[var(--text-dim)]">Meta ${expFmtDuracao(metas.horasDiaSeg)} ·</span> <span style="color:${corPct(pct(horasDiaSeg, metas.horasDiaSeg))}">${expFmtNum(pct(horasDiaSeg, metas.horasDiaSeg), 1)}% da meta</span>`
+      : '<span class="text-[var(--text-dim)]">Sem meta definida (Configurações)</span>';
+    $('#exp-kpi-horas-sub').textContent = `${expFmtDuracao(tempoSeg)} no período ÷ ${dias.length} dia(s) · soma do tempo das listas`;
     $('#exp-kpi-listas').textContent = expFmtNum(listas);
     $('#exp-kpi-listas-sub').textContent = `${expFmtNum(listas / dias.length, 1)} lista(s) por dia`;
 
@@ -1911,6 +1940,7 @@ function montarApp(){
         <td class="py-1.5 pr-3 font-mono text-right">${expFmtNum(d.volumes)}</td>
         <td class="py-1.5 pr-3 font-mono text-right">${celPct(pct(d.volumes, metas.volDia))}</td>
         <td class="py-1.5 pr-3 font-mono text-right">${expFmtDuracao(d.tempoExecSeg)}</td>
+        <td class="py-1.5 pr-3 font-mono text-right">${celPct(pct(d.tempoExecSeg, metas.horasDiaSeg))}</td>
         <td class="py-1.5 pr-3 font-mono text-right">${d.tempoExecSeg > 0 ? expFmtNum(d.volumesComTempo / (d.tempoExecSeg / 3600), 1) : '–'}</td>
         <td class="py-1.5 font-mono text-right">${celPct(d.tempoExecSeg > 0 ? pct(d.volumesComTempo / (d.tempoExecSeg / 3600), metas.volHora) : null)}</td>
       </tr>`).join('');
@@ -1933,6 +1963,7 @@ function montarApp(){
         <td class="py-1.5 pr-3 font-mono text-right">${expFmtNum(s.listas)}</td>
         <td class="py-1.5 pr-3 font-mono text-right">${expFmtNum(s.volumes)}</td>
         <td class="py-1.5 pr-3 font-mono text-right">${expFmtDuracao(s.tempoExecSeg)}</td>
+        <td class="py-1.5 pr-3 font-mono text-right">${celPct(pct(s.tempoExecSeg / s.dias, expMetaHorasSeg(expConfig.separadores[nome] || {}, true)))}</td>
         <td class="py-1.5 pr-3 font-mono text-right">${s.tempoExecSeg > 0 ? expFmtNum(s.volumesComTempo / (s.tempoExecSeg / 3600), 1) : '–'}</td>
         <td class="py-1.5 font-mono text-right">${celPct(s.tempoExecSeg > 0 ? pct(s.volumesComTempo / (s.tempoExecSeg / 3600), expMetaNum((expConfig.separadores[nome] || {}).metaVolHora)) : null)}</td>
       </tr>`).join('');

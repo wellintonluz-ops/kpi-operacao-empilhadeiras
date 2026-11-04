@@ -108,6 +108,10 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12H5a2 2 0 0 0-2 2v5"/><circle cx="13" cy="19" r="2"/><circle cx="5" cy="19" r="2"/><path d="M8 19h3m5-17v17h6M6 12V7c0-1.1.9-2 2-2h3l5 5"/></svg>
         <span>Produtividade Empilhadeiras</span>
       </button>
+      <button type="button" class="menu-item" data-modulo="expedicao" title="Expedição">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/></svg>
+        <span>Expedição</span>
+      </button>
       <div class="!mt-4 mx-1 rounded-lg border border-dashed border-[var(--border)] px-3 py-3 text-[11px] leading-snug text-[var(--text-dim)]">
         Os indicadores das outras operações vão aparecer aqui.
       </div>
@@ -116,6 +120,8 @@
   <div id="menu-fundo"></div>
 
   <div id="app-conteudo">
+  <!-- ======== MÓDULO: PRODUTIVIDADE EMPILHADEIRAS ======== -->
+  <div id="modulo-empilhadeiras" class="modulo-painel">
   <header class="panel border-b sticky top-0 z-30 backdrop-blur">
     <div class="max-w-[1600px] mx-auto px-5 py-3 flex items-center justify-between gap-4">
       <div class="flex items-center gap-3">
@@ -420,6 +426,68 @@
     </section>
 
   </main>
+  </div><!-- /#modulo-empilhadeiras -->
+
+  <!-- ======== MÓDULO: EXPEDIÇÃO ======== -->
+  <div id="modulo-expedicao" class="modulo-painel hidden">
+  <header class="panel border-b sticky top-0 z-30 backdrop-blur">
+    <div class="max-w-[1600px] mx-auto px-5 py-3 flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <button class="btn-icone btn-abrir-menu" title="Menu de indicadores" aria-label="Abrir menu de indicadores" aria-controls="menu-lateral">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></svg>
+        </button>
+        <div class="bg-white border border-[var(--border)] rounded-lg px-2.5 py-1.5 flex-shrink-0 flex items-center">
+          <img data-logo-tbx alt="Grupo TBX" class="h-6 w-auto block">
+        </div>
+        <div>
+          <h1 class="font-bold leading-tight text-sm sm:text-base">Expedição</h1>
+        </div>
+      </div>
+      <nav class="hidden md:flex items-center gap-1 text-sm font-medium">
+        <button data-tab-exp="importar" class="tab-btn px-3 py-2">Importar</button>
+      </nav>
+      <div class="flex items-center gap-3">
+        <span class="exp-user-email hidden sm:block text-xs text-[var(--text-dim)] font-mono"></span>
+        <button class="exp-btn-logout text-xs text-[var(--text-dim)] hover:text-[var(--text)] border border-[var(--border)] rounded-lg px-3 py-1.5 transition">Sair</button>
+      </div>
+    </div>
+    <nav class="md:hidden flex items-center gap-1 text-xs font-medium px-3 pb-2 overflow-x-auto">
+      <button data-tab-exp="importar" class="tab-btn px-3 py-2 whitespace-nowrap">Importar</button>
+    </nav>
+  </header>
+
+  <main class="max-w-[1600px] mx-auto px-5 py-6">
+    <!-- ============ EXPEDIÇÃO · IMPORTAR ============ -->
+    <section id="exp-painel-importar" class="exp-panel space-y-5">
+      <div class="panel rounded-xl p-5">
+        <h2 class="font-semibold mb-1">Importar relatório de expedição</h2>
+        <p class="text-sm text-[var(--text-dim)] mb-4">
+          Escolha o relatório (Excel ou CSV). Por enquanto o site mostra uma pré-visualização das colunas e das linhas
+          do arquivo; ainda não grava nada.
+        </p>
+        <div class="flex flex-wrap items-center gap-3">
+          <input type="file" id="exp-input-arquivo" accept=".xlsx,.xls,.csv" class="text-sm">
+          <select id="exp-select-planilha" class="hidden rounded-lg px-3 py-2 text-sm"></select>
+        </div>
+        <p id="exp-import-erro" class="hidden text-sm text-[var(--danger)] mt-3"></p>
+        <div id="exp-import-resumo" class="hidden mt-4 text-sm space-y-1"></div>
+      </div>
+
+      <div id="exp-import-preview" class="hidden panel rounded-xl p-5">
+        <div class="flex flex-wrap items-baseline justify-between gap-2 mb-3">
+          <h3 class="font-semibold">Pré-visualização</h3>
+          <p id="exp-preview-legenda" class="text-xs text-[var(--text-dim)]"></p>
+        </div>
+        <div class="overflow-auto max-h-[60vh] border border-[var(--border)] rounded-lg">
+          <table class="w-full text-xs">
+            <thead id="exp-preview-cabecalho" class="sticky top-0 bg-[var(--panel-2)] text-left text-[var(--text-dim)]"></thead>
+            <tbody id="exp-preview-corpo"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+  </div><!-- /#modulo-expedicao -->
   </div><!-- /#app-conteudo -->
 </div>
 
@@ -691,6 +759,7 @@ function montarApp(){
   if (MODO_LOCAL) {
     $('#banner-local').classList.remove('hidden');
     $('#btn-logout').classList.add('hidden');
+    $$('.exp-btn-logout').forEach(b => b.classList.add('hidden'));
     $('#btn-limpar-teste').addEventListener('click', () => {
       if (confirm('Isso apaga todos os dados de teste salvos neste navegador. Continuar?')) signOut();
     });
@@ -892,6 +961,7 @@ function montarApp(){
     }
     estado.usuario = user;
     $('#user-email').textContent = email;
+    $$('.exp-user-email').forEach(el => { el.textContent = email; });
     mostrarTela('app');
     await carregarConfiguracoes();
     trocarAba('dashboard');
@@ -911,6 +981,7 @@ function montarApp(){
   // novo entra aqui e ganha um botão data-modulo no menu.
   const MODULOS = {
     empilhadeiras: { nome: 'Produtividade Empilhadeiras', abrir: () => {} },
+    expedicao: { nome: 'Expedição', abrir: () => abrirExpedicao() },
   };
   const CHAVE_MENU_FIXO = 'tbx_menu_lateral_fixo';
   const telaLarga = window.matchMedia('(min-width: 1536px)');
@@ -950,11 +1021,16 @@ function montarApp(){
     if (!MODULOS[id]) return;
     moduloAtual = id;
     $$('#menu-lateral [data-modulo]').forEach(b => b.classList.toggle('active', b.dataset.modulo === id));
+    $$('.modulo-painel').forEach(el => el.classList.toggle('hidden', el.id !== 'modulo-' + id));
+    document.title = `${MODULOS[id].nome} · Controle de Operação — Grupo TBX`;
     MODULOS[id].abrir();
+    window.scrollTo(0, 0);
+    // o endereço (#expedicao) permite abrir direto num módulo; sem nada, abre a produtividade
+    try { history.replaceState(null, '', id === 'empilhadeiras' ? location.pathname + location.search : '#' + id); } catch {}
     if (!telaLarga.matches) fecharMenuFlutuante();
   }
 
-  $('#btn-menu').addEventListener('click', alternarMenu);
+  $$('#btn-menu, .btn-abrir-menu').forEach(b => b.addEventListener('click', alternarMenu));
   $('#btn-fechar-menu').addEventListener('click', () => {
     if (telaLarga.matches) { gravarMenuFixo(false); aplicarMenuFixo(); } else fecharMenuFlutuante();
   });
@@ -963,6 +1039,92 @@ function montarApp(){
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') fecharMenuFlutuante(); });
   telaLarga.addEventListener('change', aplicarMenuFixo);
   aplicarMenuFixo();
+
+  // ================= MÓDULO: EXPEDIÇÃO =================
+  function abrirExpedicao() {
+    // mesmo logo, e-mail e botão Sair do cabeçalho da produtividade
+    const logo = document.querySelector('#modulo-empilhadeiras header img');
+    $$('[data-logo-tbx]').forEach(img => { if (logo && !img.src) img.src = logo.src; });
+    $$('.exp-user-email').forEach(el => { el.textContent = $('#user-email').textContent; });
+    $$('.exp-btn-logout').forEach(b => b.classList.toggle('hidden', $('#btn-logout').classList.contains('hidden')));
+    trocarAbaExpedicao(document.querySelector('[data-tab-exp].active')?.dataset.tabExp || 'importar');
+  }
+  function trocarAbaExpedicao(nome) {
+    $$('[data-tab-exp]').forEach(b => b.classList.toggle('active', b.dataset.tabExp === nome));
+    $$('.exp-panel').forEach(p => p.classList.toggle('hidden', p.id !== 'exp-painel-' + nome));
+  }
+  $$('[data-tab-exp]').forEach(b => b.addEventListener('click', () => trocarAbaExpedicao(b.dataset.tabExp)));
+  $$('.exp-btn-logout').forEach(b => b.addEventListener('click', () => $('#btn-logout').click()));
+
+  // Importar: lê o arquivo e mostra colunas e linhas (ainda não grava)
+  let expWorkbook = null;
+  let expNomeArquivo = '';
+  function expMostrarErro(msg) {
+    const el = $('#exp-import-erro');
+    el.textContent = msg || '';
+    el.classList.toggle('hidden', !msg);
+  }
+  $('#exp-input-arquivo').addEventListener('change', async (e) => {
+    const arquivo = e.target.files && e.target.files[0];
+    expMostrarErro('');
+    $('#exp-import-resumo').classList.add('hidden');
+    $('#exp-import-preview').classList.add('hidden');
+    $('#exp-select-planilha').classList.add('hidden');
+    if (!arquivo) return;
+    try {
+      const dados = await arquivo.arrayBuffer();
+      expWorkbook = XLSX.read(dados, { type: 'array', cellDates: true });
+      expNomeArquivo = arquivo.name;
+    } catch (err) {
+      console.error(err);
+      expWorkbook = null;
+      expMostrarErro('Não consegui ler esse arquivo. Confira se é um Excel (.xlsx/.xls) ou CSV.');
+      return;
+    }
+    const sel = $('#exp-select-planilha');
+    sel.innerHTML = expWorkbook.SheetNames.map(nome => `<option>${String(nome).replace(/</g, '&lt;')}</option>`).join('');
+    sel.classList.toggle('hidden', expWorkbook.SheetNames.length < 2);
+    expRenderPreview(expWorkbook.SheetNames[0]);
+  });
+  $('#exp-select-planilha').addEventListener('change', (e) => expRenderPreview(e.target.value));
+
+  function expRenderPreview(nomePlanilha) {
+    if (!expWorkbook) return;
+    const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;');
+    const ws = expWorkbook.Sheets[nomePlanilha];
+    const matriz = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: '', blankrows: false })
+      .filter(l => l.some(c => String(c).trim() !== ''));
+    if (!matriz.length) {
+      expMostrarErro(`A planilha "${nomePlanilha}" está vazia.`);
+      $('#exp-import-resumo').classList.add('hidden');
+      $('#exp-import-preview').classList.add('hidden');
+      return;
+    }
+    const cabecalho = matriz[0].map((c, i) => String(c).trim() || `Coluna ${i + 1}`);
+    const linhas = matriz.slice(1);
+    if (!linhas.length) {
+      expMostrarErro(`Não achei linhas de dados em "${expNomeArquivo}"${expWorkbook.SheetNames.length > 1 ? ` (planilha "${nomePlanilha}")` : ''}. Confira se é o relatório certo e se ele abre no Excel.`);
+      $('#exp-import-resumo').classList.add('hidden');
+      $('#exp-import-preview').classList.add('hidden');
+      return;
+    }
+    expMostrarErro('');
+    const LIMITE = 100;
+    $('#exp-import-resumo').innerHTML = `
+      <p><span class="text-[var(--text-dim)]">Arquivo:</span> <b>${esc(expNomeArquivo)}</b>${expWorkbook.SheetNames.length > 1 ? ` · planilha <b>${esc(nomePlanilha)}</b>` : ''}</p>
+      <p><span class="text-[var(--text-dim)]">Linhas:</span> <b>${linhas.length.toLocaleString('pt-BR')}</b> · <span class="text-[var(--text-dim)]">Colunas:</span> <b>${cabecalho.length}</b></p>
+      <div class="flex flex-wrap gap-1.5 pt-1">${cabecalho.map(c => `<span class="panel-2 rounded-md px-2 py-0.5 text-xs font-mono">${esc(c)}</span>`).join('')}</div>`;
+    $('#exp-import-resumo').classList.remove('hidden');
+    $('#exp-preview-cabecalho').innerHTML = `<tr>${cabecalho.map(c => `<th class="px-3 py-2 font-medium whitespace-nowrap border-b border-[var(--border)]">${esc(c)}</th>`).join('')}</tr>`;
+    $('#exp-preview-corpo').innerHTML = linhas.slice(0, LIMITE).map(l => `<tr class="border-b border-[var(--border)]/50">${cabecalho.map((_, i) => `<td class="px-3 py-1.5 whitespace-nowrap">${esc(l[i])}</td>`).join('')}</tr>`).join('');
+    $('#exp-preview-legenda').textContent = linhas.length > LIMITE
+      ? `Mostrando as ${LIMITE} primeiras de ${linhas.length.toLocaleString('pt-BR')} linhas`
+      : `${linhas.length.toLocaleString('pt-BR')} linha(s)`;
+    $('#exp-import-preview').classList.remove('hidden');
+  }
+
+  // abrir direto num módulo pelo endereço (ex.: ...github.io/kpi-operacao-empilhadeiras/#expedicao)
+  if (location.hash && MODULOS[location.hash.slice(1)]) abrirModulo(location.hash.slice(1));
 
   function trocarAba(nome) {
     $$('[data-tab]').forEach(b => b.classList.toggle('active', b.dataset.tab === nome));

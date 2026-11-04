@@ -444,6 +444,7 @@
         </div>
       </div>
       <nav class="hidden md:flex items-center gap-1 text-sm font-medium">
+        <button data-tab-exp="dashboard" class="tab-btn px-3 py-2">Dashboard</button>
         <button data-tab-exp="importar" class="tab-btn px-3 py-2">Importar</button>
       </nav>
       <div class="flex items-center gap-3">
@@ -452,18 +453,90 @@
       </div>
     </div>
     <nav class="md:hidden flex items-center gap-1 text-xs font-medium px-3 pb-2 overflow-x-auto">
+      <button data-tab-exp="dashboard" class="tab-btn px-3 py-2 whitespace-nowrap">Dashboard</button>
       <button data-tab-exp="importar" class="tab-btn px-3 py-2 whitespace-nowrap">Importar</button>
     </nav>
   </header>
 
   <main class="max-w-[1600px] mx-auto px-5 py-6">
+    <!-- ============ EXPEDIÇÃO · DASHBOARD ============ -->
+    <section id="exp-painel-dashboard" class="exp-panel space-y-5">
+      <div class="flex flex-wrap items-end justify-between gap-2">
+        <div>
+          <h2 class="font-semibold">Separação — últimos 30 dias com registro</h2>
+          <p id="exp-periodo" class="text-xs text-[var(--text-dim)] mt-0.5"></p>
+        </div>
+        <button id="exp-btn-atualizar" class="text-xs text-[var(--text-dim)] hover:text-[var(--text)] border border-[var(--border)] rounded-lg px-3 py-1.5 transition">Atualizar</button>
+      </div>
+
+      <div id="exp-dash-carregando" class="hidden panel rounded-xl p-8 flex items-center justify-center gap-3 text-sm text-[var(--text-dim)]"><div class="spinner"></div> Carregando…</div>
+      <div id="exp-dash-vazio" class="hidden panel rounded-xl p-8 text-center text-sm text-[var(--text-dim)]">
+        Ainda não há listas de separação concluídas salvas. Importe o relatório na aba <button type="button" data-ir-tab-exp="importar" class="font-semibold text-[var(--text)] underline">Importar</button>.
+      </div>
+
+      <div id="exp-dash-conteudo" class="hidden space-y-5 fade-in">
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div class="panel rounded-xl p-4" style="box-shadow:inset 3px 0 0 var(--accent)">
+            <p class="text-[11px] text-[var(--text-dim)] mb-1">Média de volumes separados por hora</p>
+            <p id="exp-kpi-volhora" class="text-2xl font-bold font-mono">–</p>
+            <p class="text-[10px] text-[var(--text-dim)] mt-1">Volumes ÷ tempo de execução das listas</p>
+          </div>
+          <div class="panel rounded-xl p-4" style="box-shadow:inset 3px 0 0 var(--accent)">
+            <p class="text-[11px] text-[var(--text-dim)] mb-1">Média de volumes separados por dia</p>
+            <p id="exp-kpi-voldia" class="text-2xl font-bold font-mono">–</p>
+            <p id="exp-kpi-voldia-sub" class="text-[10px] text-[var(--text-dim)] mt-1"></p>
+          </div>
+          <div class="panel rounded-xl p-4">
+            <p class="text-[11px] text-[var(--text-dim)] mb-1">Volumes separados (no período)</p>
+            <p id="exp-kpi-volumes" class="text-2xl font-bold font-mono">–</p>
+            <p id="exp-kpi-volumes-sub" class="text-[10px] text-[var(--text-dim)] mt-1"></p>
+          </div>
+          <div class="panel rounded-xl p-4">
+            <p class="text-[11px] text-[var(--text-dim)] mb-1">Listas concluídas (no período)</p>
+            <p id="exp-kpi-listas" class="text-2xl font-bold font-mono">–</p>
+            <p id="exp-kpi-listas-sub" class="text-[10px] text-[var(--text-dim)] mt-1"></p>
+          </div>
+        </div>
+
+        <div class="panel rounded-xl p-5">
+          <p class="text-sm font-semibold mb-3">Volumes separados por dia e média de volumes por hora</p>
+          <canvas id="exp-chart-dias" height="90"></canvas>
+        </div>
+
+        <div class="grid lg:grid-cols-2 gap-5">
+          <div class="panel rounded-xl p-5">
+            <p class="text-sm font-semibold mb-3">Por dia</p>
+            <div class="overflow-x-auto">
+              <table class="w-full text-xs">
+                <thead class="text-left text-[var(--text-dim)] border-b border-[var(--border)]">
+                  <tr><th class="py-2 pr-3 font-medium">Data</th><th class="py-2 pr-3 font-medium text-right">Listas</th><th class="py-2 pr-3 font-medium text-right">Volumes</th><th class="py-2 pr-3 font-medium text-right">Tempo de execução</th><th class="py-2 font-medium text-right">Vol./hora</th></tr>
+                </thead>
+                <tbody id="exp-tabela-dias"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="panel rounded-xl p-5">
+            <p class="text-sm font-semibold mb-3">Por separador</p>
+            <div class="overflow-x-auto">
+              <table class="w-full text-xs">
+                <thead class="text-left text-[var(--text-dim)] border-b border-[var(--border)]">
+                  <tr><th class="py-2 pr-3 font-medium">Responsável</th><th class="py-2 pr-3 font-medium text-right">Dias</th><th class="py-2 pr-3 font-medium text-right">Listas</th><th class="py-2 pr-3 font-medium text-right">Volumes</th><th class="py-2 pr-3 font-medium text-right">Tempo de execução</th><th class="py-2 font-medium text-right">Vol./hora</th></tr>
+                </thead>
+                <tbody id="exp-tabela-separadores"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- ============ EXPEDIÇÃO · IMPORTAR ============ -->
-    <section id="exp-painel-importar" class="exp-panel space-y-5">
+    <section id="exp-painel-importar" class="exp-panel space-y-5 hidden">
       <div class="panel rounded-xl p-5">
-        <h2 class="font-semibold mb-1">Importar relatório de expedição</h2>
+        <h2 class="font-semibold mb-1">Importar listas de separação</h2>
         <p class="text-sm text-[var(--text-dim)] mb-4">
-          Escolha o relatório (Excel ou CSV). Por enquanto o site mostra uma pré-visualização das colunas e das linhas
-          do arquivo; ainda não grava nada.
+          Suba o relatório de listas de separação do WMS (Excel ou CSV), do jeito que ele sai. O site lê todas as listas
+          com as notas fiscais e itens de cada uma. Importar o mesmo período de novo atualiza as listas, sem duplicar.
         </p>
         <div class="flex flex-wrap items-center gap-3">
           <input type="file" id="exp-input-arquivo" accept=".xlsx,.xls,.csv" class="text-sm">
@@ -471,16 +544,36 @@
         </div>
         <p id="exp-import-erro" class="hidden text-sm text-[var(--danger)] mt-3"></p>
         <div id="exp-import-resumo" class="hidden mt-4 text-sm space-y-1"></div>
+        <div id="exp-import-acoes" class="hidden mt-4 flex flex-wrap items-center gap-3">
+          <button id="exp-btn-salvar" class="bg-[var(--accent)] text-black font-semibold text-sm rounded-lg px-4 py-2 hover:brightness-110 transition flex items-center gap-2">
+            <span>Salvar listas de separação</span>
+          </button>
+          <p class="text-xs text-[var(--text-dim)]">Escolher o arquivo só mostra a pré-visualização; os dados são gravados ao clicar em salvar.</p>
+        </div>
       </div>
 
       <div id="exp-import-preview" class="hidden panel rounded-xl p-5">
         <div class="flex flex-wrap items-baseline justify-between gap-2 mb-3">
-          <h3 class="font-semibold">Pré-visualização</h3>
+          <h3 class="font-semibold">Listas encontradas no arquivo</h3>
           <p id="exp-preview-legenda" class="text-xs text-[var(--text-dim)]"></p>
         </div>
         <div class="overflow-auto max-h-[60vh] border border-[var(--border)] rounded-lg">
           <table class="w-full text-xs">
-            <thead id="exp-preview-cabecalho" class="sticky top-0 bg-[var(--panel-2)] text-left text-[var(--text-dim)]"></thead>
+            <thead class="sticky top-0 bg-[var(--panel-2)] text-left text-[var(--text-dim)]">
+              <tr>
+                <th class="px-3 py-2 font-medium whitespace-nowrap">Id</th>
+                <th class="px-3 py-2 font-medium whitespace-nowrap">Criação</th>
+                <th class="px-3 py-2 font-medium whitespace-nowrap">Conclusão</th>
+                <th class="px-3 py-2 font-medium whitespace-nowrap text-right">Tempo</th>
+                <th class="px-3 py-2 font-medium whitespace-nowrap text-right">Volumes</th>
+                <th class="px-3 py-2 font-medium whitespace-nowrap text-right">Vol./hora</th>
+                <th class="px-3 py-2 font-medium whitespace-nowrap">Transportadora</th>
+                <th class="px-3 py-2 font-medium whitespace-nowrap">Responsável</th>
+                <th class="px-3 py-2 font-medium whitespace-nowrap">Status</th>
+                <th class="px-3 py-2 font-medium whitespace-nowrap text-right">Notas</th>
+                <th class="px-3 py-2 font-medium whitespace-nowrap text-right">Itens</th>
+              </tr>
+            </thead>
             <tbody id="exp-preview-corpo"></tbody>
           </table>
         </div>
@@ -965,6 +1058,9 @@ function montarApp(){
     mostrarTela('app');
     await carregarConfiguracoes();
     trocarAba('dashboard');
+    // abrir direto num módulo pelo endereço (ex.: ...github.io/kpi-operacao-empilhadeiras/#expedicao)
+    const moduloDoEndereco = location.hash.slice(1);
+    if (moduloDoEndereco && moduloDoEndereco !== 'empilhadeiras' && MODULOS[moduloDoEndereco]) abrirModulo(moduloDoEndereco);
   });
 
   function mostrarTela(nome) {
@@ -1041,39 +1137,199 @@ function montarApp(){
   aplicarMenuFixo();
 
   // ================= MÓDULO: EXPEDIÇÃO =================
+  // Dados no Firestore:
+  //  expedicao_listas/{id}  → uma lista de separação, com as notas fiscais e itens
+  //  expedicao_dias/{AAAA-MM-DD} → resumo do dia (só listas concluídas), usado pelo Dashboard
   function abrirExpedicao() {
     // mesmo logo, e-mail e botão Sair do cabeçalho da produtividade
     const logo = document.querySelector('#modulo-empilhadeiras header img');
     $$('[data-logo-tbx]').forEach(img => { if (logo && !img.src) img.src = logo.src; });
     $$('.exp-user-email').forEach(el => { el.textContent = $('#user-email').textContent; });
     $$('.exp-btn-logout').forEach(b => b.classList.toggle('hidden', $('#btn-logout').classList.contains('hidden')));
-    trocarAbaExpedicao(document.querySelector('[data-tab-exp].active')?.dataset.tabExp || 'importar');
+    trocarAbaExpedicao(document.querySelector('[data-tab-exp].active')?.dataset.tabExp || 'dashboard');
   }
   function trocarAbaExpedicao(nome) {
     $$('[data-tab-exp]').forEach(b => b.classList.toggle('active', b.dataset.tabExp === nome));
     $$('.exp-panel').forEach(p => p.classList.toggle('hidden', p.id !== 'exp-painel-' + nome));
+    if (nome === 'dashboard') expCarregarDashboard();
   }
   $$('[data-tab-exp]').forEach(b => b.addEventListener('click', () => trocarAbaExpedicao(b.dataset.tabExp)));
+  $$('[data-ir-tab-exp]').forEach(b => b.addEventListener('click', () => trocarAbaExpedicao(b.dataset.irTabExp)));
   $$('.exp-btn-logout').forEach(b => b.addEventListener('click', () => $('#btn-logout').click()));
+  $('#exp-btn-atualizar').addEventListener('click', () => expCarregarDashboard());
 
-  // Importar: lê o arquivo e mostra colunas e linhas (ainda não grava)
+  const EXP_DIAS_JANELA = 30;
+  const expEsc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+  const expNorm = (s) => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  const expFmtNum = (v, casas = 0) => (v === null || v === undefined || !isFinite(v)) ? '–'
+    : Number(v).toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas });
+  // duração longa em "12h05" (horas podem passar de 24)
+  const expFmtDuracao = (seg) => {
+    if (!seg) return '0h00';
+    const m = Math.round(seg / 60);
+    return `${Math.floor(m / 60)}h${String(m % 60).padStart(2, '0')}`;
+  };
+  const expFmtDataHora = (iso) => iso ? `${formatDataBR(iso.slice(0, 10))} ${iso.slice(11, 16)}` : '–';
+  const expHojeISO = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
+
+  // número em "1.234,5", "1234.5", "60"…
+  function expNum(v) {
+    if (v === null || v === undefined || v === '') return null;
+    if (typeof v === 'number') return isFinite(v) ? v : null;
+    let s = String(v).trim().replace(/\s/g, '');
+    if (/^-?\d{1,3}(\.\d{3})+(,\d+)?$/.test(s)) s = s.replace(/\./g, '').replace(',', '.');
+    else s = s.replace(',', '.');
+    const n = Number(s);
+    return isFinite(n) ? n : null;
+  }
+  // data/hora da planilha → "AAAA-MM-DDTHH:MM:SS" (hora local, sem fuso)
+  function expDataHora(v) {
+    if (v === null || v === undefined || v === '') return null;
+    const monta = (a, m, d, h = 0, mi = 0, s = 0) => `${a}-${pad(m)}-${pad(d)}T${pad(h)}:${pad(mi)}:${pad(s)}`;
+    if (typeof v === 'number' && isFinite(v)) { // número de série do Excel
+      const dt = new Date(Math.round((v - 25569) * 86400) * 1000);
+      return monta(dt.getUTCFullYear(), dt.getUTCMonth() + 1, dt.getUTCDate(), dt.getUTCHours(), dt.getUTCMinutes(), dt.getUTCSeconds());
+    }
+    if (v instanceof Date && !isNaN(v)) return monta(v.getFullYear(), v.getMonth() + 1, v.getDate(), v.getHours(), v.getMinutes(), v.getSeconds());
+    const s = String(v).trim();
+    let m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})(?:[\sT,]+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+    if (m) {
+      const ano = m[3].length === 2 ? 2000 + Number(m[3]) : Number(m[3]);
+      return monta(ano, Number(m[2]), Number(m[1]), Number(m[4] || 0), Number(m[5] || 0), Number(m[6] || 0));
+    }
+    m = s.match(/^(\d{4})-(\d{2})-(\d{2})(?:[\sT](\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+    if (m) return monta(Number(m[1]), Number(m[2]), Number(m[3]), Number(m[4] || 0), Number(m[5] || 0), Number(m[6] || 0));
+    return null;
+  }
+  // "1 mins", "1 h 5 mins", "01:05:00", "65" (minutos) → segundos
+  function expTempoExec(v) {
+    if (v === null || v === undefined || v === '') return null;
+    if (typeof v === 'number') return isFinite(v) ? Math.round(v * 60) : null;
+    const s = String(v).toLowerCase().trim();
+    let m = s.match(/^(\d+):(\d{2})(?::(\d{2}))?$/);
+    if (m) return m[3] !== undefined ? Number(m[1]) * 3600 + Number(m[2]) * 60 + Number(m[3]) : Number(m[1]) * 3600 + Number(m[2]) * 60;
+    if (/^\d+([.,]\d+)?$/.test(s)) return Math.round(expNum(s) * 60);
+    const pega = (re) => { const x = s.match(re); return x ? expNum(x[1]) : 0; };
+    const dias = pega(/(\d+(?:[.,]\d+)?)\s*d(?:ia|ias)?\b/);
+    const horas = pega(/(\d+(?:[.,]\d+)?)\s*h/);
+    const mins = pega(/(\d+(?:[.,]\d+)?)\s*min/);
+    const segs = pega(/(\d+)\s*s(?:eg|egs|egundos?|ec|ecs)?\b/);
+    const total = Math.round(dias * 86400 + horas * 3600 + mins * 60 + segs);
+    return total || (/\d/.test(s) ? 0 : null);
+  }
+  const expSegEntre = (a, b) => (a && b) ? Math.max(0, Math.round((new Date(b) - new Date(a)) / 1000)) : null;
+  const expConcluida = (l) => expNorm(l.status).startsWith('conclu');
+
+  // Lê o relatório "Listas de separação": uma linha por lista e, embaixo, as
+  // notas fiscais (Nota fiscal | Item | Qtd) daquela lista.
+  function expLerRelatorio(matriz) {
+    const hi = matriz.findIndex(l => {
+      const c = l.map(expNorm);
+      return c.includes('id') && c.some(x => x.startsWith('data de criacao'));
+    });
+    if (hi < 0) throw new Error('Não reconheci o relatório: esperava as colunas "Id", "Data de criação", "Total de volumes separados" e "Responsável" (relatório de listas de separação do WMS).');
+    const cab = matriz[hi].map(expNorm);
+    const col = (...nomes) => { for (const nm of nomes) { const k = cab.findIndex(c => c === nm || c.startsWith(nm)); if (k >= 0) return k; } return -1; };
+    const C = {
+      id: col('id'), criacao: col('data de criacao'), conclusao: col('data da conclusao', 'data de conclusao'),
+      tempo: col('tempo de execucao'), volumes: col('total de volumes'), volHora: col('media vol'),
+      transp: col('transportadora'), resp: col('responsavel'), status: col('status'), notas: col('notas fiscais', 'nota fiscal'),
+    };
+    const faltando = [['Id', C.id], ['Data de criação', C.criacao], ['Total de volumes separados', C.volumes], ['Responsável', C.resp]]
+      .filter(([, k]) => k < 0).map(([nome]) => nome);
+    if (faltando.length) throw new Error('Faltam colunas no relatório: ' + faltando.join(', ') + '.');
+
+    const porId = new Map();
+    let atual = null;
+    for (let r = hi + 1; r < matriz.length; r++) {
+      const l = matriz[r];
+      const id = String(l[C.id] ?? '').trim();
+      if (id) {
+        const criadaEm = expDataHora(l[C.criacao]);
+        const concluidaEm = C.conclusao >= 0 ? expDataHora(l[C.conclusao]) : null;
+        const tempoTxt = C.tempo >= 0 ? l[C.tempo] : null;
+        let tempoExecSeg = expTempoExec(tempoTxt);
+        if (tempoExecSeg === null) tempoExecSeg = expSegEntre(criadaEm, concluidaEm);
+        atual = {
+          id: id.replace(/\//g, '-'),
+          criadaEm, concluidaEm,
+          data: (concluidaEm || criadaEm || '').slice(0, 10) || null,
+          tempoExecSeg: tempoExecSeg ?? null,
+          tempoExecTexto: tempoTxt === null || tempoTxt === undefined ? '' : String(tempoTxt),
+          volumes: expNum(l[C.volumes]) ?? 0,
+          volHoraWms: C.volHora >= 0 ? expNum(l[C.volHora]) : null,
+          transportadora: C.transp >= 0 ? String(l[C.transp] ?? '').trim() : '',
+          responsavel: String(l[C.resp] ?? '').trim() || '(sem responsável)',
+          status: C.status >= 0 ? String(l[C.status] ?? '').trim() : '',
+          qtdNotas: C.notas >= 0 ? expNum(l[C.notas]) : null,
+          itens: [],
+        };
+        porId.set(atual.id, atual); // o mesmo Id repetido: vale o último
+        continue;
+      }
+      if (!atual || C.notas < 0) continue;
+      const nf = String(l[C.notas] ?? '').trim();
+      const item = String(l[C.notas + 1] ?? '').trim();
+      if (!nf && !item) continue;
+      if (expNorm(nf) === 'nota fiscal' || expNorm(item) === 'item') continue; // subcabeçalho
+      atual.itens.push({ nf, item, qtd: expNum(l[C.notas + 2]) });
+    }
+    return [...porId.values()];
+  }
+
+  // Resumo de um dia a partir das listas dele (só concluídas entram).
+  // A média por hora usa só listas com tempo de execução, nos dois lados da conta.
+  function expResumirDia(data, listas) {
+    const vazio = () => ({ listas: 0, volumes: 0, volumesComTempo: 0, tempoExecSeg: 0 });
+    const soma = (acc, l) => {
+      acc.listas += 1;
+      acc.volumes += l.volumes || 0;
+      if (l.tempoExecSeg > 0) { acc.volumesComTempo += l.volumes || 0; acc.tempoExecSeg += l.tempoExecSeg; }
+    };
+    const total = vazio();
+    const porResponsavel = {};
+    const porTransportadora = {};
+    let naoConcluidas = 0;
+    for (const l of listas) {
+      if (!expConcluida(l)) { naoConcluidas++; continue; }
+      soma(total, l);
+      soma(porResponsavel[l.responsavel] ||= vazio(), l);
+      soma(porTransportadora[l.transportadora || '(sem transportadora)'] ||= vazio(), l);
+    }
+    return { data, ...total, naoConcluidas, porResponsavel, porTransportadora, atualizadoEm: new Date().toISOString() };
+  }
+
+  // ---------- Importar ----------
   let expWorkbook = null;
   let expNomeArquivo = '';
+  let expListasArquivo = [];
   function expMostrarErro(msg) {
     const el = $('#exp-import-erro');
     el.textContent = msg || '';
     el.classList.toggle('hidden', !msg);
   }
+  function expLimparImportacao() {
+    ['#exp-import-resumo', '#exp-import-preview', '#exp-import-acoes'].forEach(s => $(s).classList.add('hidden'));
+    expListasArquivo = [];
+  }
   $('#exp-input-arquivo').addEventListener('change', async (e) => {
     const arquivo = e.target.files && e.target.files[0];
     expMostrarErro('');
-    $('#exp-import-resumo').classList.add('hidden');
-    $('#exp-import-preview').classList.add('hidden');
+    expLimparImportacao();
     $('#exp-select-planilha').classList.add('hidden');
     if (!arquivo) return;
     try {
       const dados = await arquivo.arrayBuffer();
-      expWorkbook = XLSX.read(dados, { type: 'array', cellDates: true });
+      if (/\.csv$/i.test(arquivo.name)) {
+        // CSV: decodifica o texto (UTF-8 ou o padrão do Windows/Excel) e lê sem
+        // converter valores, pra "04/11/2026" não virar data no formato americano
+        let texto;
+        try { texto = new TextDecoder('utf-8', { fatal: true }).decode(dados); }
+        catch { texto = new TextDecoder('windows-1252').decode(dados); }
+        expWorkbook = XLSX.read(texto.replace(/^\uFEFF/, ''), { type: 'string', raw: true });
+      } else {
+        expWorkbook = XLSX.read(dados, { type: 'array' });
+      }
       expNomeArquivo = arquivo.name;
     } catch (err) {
       console.error(err);
@@ -1082,49 +1338,231 @@ function montarApp(){
       return;
     }
     const sel = $('#exp-select-planilha');
-    sel.innerHTML = expWorkbook.SheetNames.map(nome => `<option>${String(nome).replace(/</g, '&lt;')}</option>`).join('');
+    sel.innerHTML = expWorkbook.SheetNames.map(nome => `<option>${expEsc(nome)}</option>`).join('');
     sel.classList.toggle('hidden', expWorkbook.SheetNames.length < 2);
-    expRenderPreview(expWorkbook.SheetNames[0]);
+    expProcessarPlanilha(expWorkbook.SheetNames[0]);
   });
-  $('#exp-select-planilha').addEventListener('change', (e) => expRenderPreview(e.target.value));
+  $('#exp-select-planilha').addEventListener('change', (e) => expProcessarPlanilha(e.target.value));
 
-  function expRenderPreview(nomePlanilha) {
+  function expProcessarPlanilha(nomePlanilha) {
     if (!expWorkbook) return;
-    const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;');
-    const ws = expWorkbook.Sheets[nomePlanilha];
-    const matriz = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: '', blankrows: false })
-      .filter(l => l.some(c => String(c).trim() !== ''));
-    if (!matriz.length) {
-      expMostrarErro(`A planilha "${nomePlanilha}" está vazia.`);
-      $('#exp-import-resumo').classList.add('hidden');
-      $('#exp-import-preview').classList.add('hidden');
+    expLimparImportacao();
+    const matriz = XLSX.utils.sheet_to_json(expWorkbook.Sheets[nomePlanilha], { header: 1, raw: true, defval: '', blankrows: false });
+    let listas;
+    try {
+      listas = expLerRelatorio(matriz);
+    } catch (err) {
+      expMostrarErro(err.message);
       return;
     }
-    const cabecalho = matriz[0].map((c, i) => String(c).trim() || `Coluna ${i + 1}`);
-    const linhas = matriz.slice(1);
-    if (!linhas.length) {
-      expMostrarErro(`Não achei linhas de dados em "${expNomeArquivo}"${expWorkbook.SheetNames.length > 1 ? ` (planilha "${nomePlanilha}")` : ''}. Confira se é o relatório certo e se ele abre no Excel.`);
-      $('#exp-import-resumo').classList.add('hidden');
-      $('#exp-import-preview').classList.add('hidden');
+    if (!listas.length) {
+      expMostrarErro(`Não achei nenhuma lista de separação em "${expNomeArquivo}"${expWorkbook.SheetNames.length > 1 ? ` (planilha "${nomePlanilha}")` : ''}.`);
       return;
     }
     expMostrarErro('');
-    const LIMITE = 100;
+    expListasArquivo = listas;
+
+    const concluidas = listas.filter(expConcluida);
+    const datas = [...new Set(listas.map(l => l.data).filter(Boolean))].sort();
+    const volumes = concluidas.reduce((a, l) => a + (l.volumes || 0), 0);
+    const itens = listas.reduce((a, l) => a + l.itens.length, 0);
+    const separadores = new Set(listas.map(l => l.responsavel)).size;
+    const semData = listas.filter(l => !l.data).length;
+    const semTempo = concluidas.filter(l => !(l.tempoExecSeg > 0)).length;
+    const avisos = [];
+    if (listas.length - concluidas.length) avisos.push(`${listas.length - concluidas.length} lista(s) não concluída(s) — são salvas, mas só as concluídas entram nos indicadores.`);
+    if (semTempo) avisos.push(`${semTempo} lista(s) concluída(s) sem tempo de execução — contam nos volumes do dia, mas não na média por hora.`);
+    if (semData) avisos.push(`${semData} lista(s) sem data reconhecida — não entram em nenhum dia.`);
     $('#exp-import-resumo').innerHTML = `
-      <p><span class="text-[var(--text-dim)]">Arquivo:</span> <b>${esc(expNomeArquivo)}</b>${expWorkbook.SheetNames.length > 1 ? ` · planilha <b>${esc(nomePlanilha)}</b>` : ''}</p>
-      <p><span class="text-[var(--text-dim)]">Linhas:</span> <b>${linhas.length.toLocaleString('pt-BR')}</b> · <span class="text-[var(--text-dim)]">Colunas:</span> <b>${cabecalho.length}</b></p>
-      <div class="flex flex-wrap gap-1.5 pt-1">${cabecalho.map(c => `<span class="panel-2 rounded-md px-2 py-0.5 text-xs font-mono">${esc(c)}</span>`).join('')}</div>`;
+      <p><span class="text-[var(--text-dim)]">Arquivo:</span> <b>${expEsc(expNomeArquivo)}</b>${expWorkbook.SheetNames.length > 1 ? ` · planilha <b>${expEsc(nomePlanilha)}</b>` : ''}</p>
+      <p><b>${expFmtNum(listas.length)}</b> lista(s) · <b>${expFmtNum(concluidas.length)}</b> concluída(s) · <b>${expFmtNum(volumes)}</b> volumes separados · <b>${expFmtNum(itens)}</b> item(ns) de nota fiscal · <b>${separadores}</b> separador(es)</p>
+      <p><span class="text-[var(--text-dim)]">Período:</span> ${datas.length ? `${formatDataBR(datas[0])} a ${formatDataBR(datas[datas.length - 1])} (${datas.length} dia(s))` : '–'}</p>
+      ${avisos.map(a => `<p class="text-xs text-[var(--warn)]">${expEsc(a)}</p>`).join('')}`;
     $('#exp-import-resumo').classList.remove('hidden');
-    $('#exp-preview-cabecalho').innerHTML = `<tr>${cabecalho.map(c => `<th class="px-3 py-2 font-medium whitespace-nowrap border-b border-[var(--border)]">${esc(c)}</th>`).join('')}</tr>`;
-    $('#exp-preview-corpo').innerHTML = linhas.slice(0, LIMITE).map(l => `<tr class="border-b border-[var(--border)]/50">${cabecalho.map((_, i) => `<td class="px-3 py-1.5 whitespace-nowrap">${esc(l[i])}</td>`).join('')}</tr>`).join('');
-    $('#exp-preview-legenda').textContent = linhas.length > LIMITE
-      ? `Mostrando as ${LIMITE} primeiras de ${linhas.length.toLocaleString('pt-BR')} linhas`
-      : `${linhas.length.toLocaleString('pt-BR')} linha(s)`;
+    $('#exp-import-acoes').classList.remove('hidden');
+
+    const LIMITE = 300;
+    $('#exp-preview-corpo').innerHTML = listas.slice(0, LIMITE).map(l => `
+      <tr class="border-b border-[var(--border)]/50">
+        <td class="px-3 py-1.5 font-mono whitespace-nowrap">${expEsc(l.id)}</td>
+        <td class="px-3 py-1.5 font-mono whitespace-nowrap">${expFmtDataHora(l.criadaEm)}</td>
+        <td class="px-3 py-1.5 font-mono whitespace-nowrap">${expFmtDataHora(l.concluidaEm)}</td>
+        <td class="px-3 py-1.5 font-mono whitespace-nowrap text-right">${l.tempoExecSeg === null ? '–' : segParaHMS(l.tempoExecSeg)}</td>
+        <td class="px-3 py-1.5 font-mono text-right">${expFmtNum(l.volumes)}</td>
+        <td class="px-3 py-1.5 font-mono text-right">${l.tempoExecSeg > 0 ? expFmtNum(l.volumes / (l.tempoExecSeg / 3600), 1) : '–'}</td>
+        <td class="px-3 py-1.5 whitespace-nowrap">${expEsc(l.transportadora) || '–'}</td>
+        <td class="px-3 py-1.5 whitespace-nowrap">${expEsc(l.responsavel)}</td>
+        <td class="px-3 py-1.5 whitespace-nowrap">${expConcluida(l) ? `<span class="badge-ok px-1.5 py-0.5 rounded">${expEsc(l.status)}</span>` : `<span class="badge-warn px-1.5 py-0.5 rounded">${expEsc(l.status) || '–'}</span>`}</td>
+        <td class="px-3 py-1.5 font-mono text-right">${expFmtNum(l.qtdNotas)}</td>
+        <td class="px-3 py-1.5 font-mono text-right" title="${expEsc(l.itens.slice(0, 15).map(it => `${it.nf} · ${it.item} · ${it.qtd ?? ''}`).join('\n'))}">${expFmtNum(l.itens.length)}</td>
+      </tr>`).join('');
+    $('#exp-preview-legenda').textContent = listas.length > LIMITE
+      ? `Mostrando as ${LIMITE} primeiras de ${expFmtNum(listas.length)} listas` : `${expFmtNum(listas.length)} lista(s)`;
     $('#exp-import-preview').classList.remove('hidden');
   }
 
-  // abrir direto num módulo pelo endereço (ex.: ...github.io/kpi-operacao-empilhadeiras/#expedicao)
-  if (location.hash && MODULOS[location.hash.slice(1)]) abrirModulo(location.hash.slice(1));
+  let expSalvando = false;
+  $('#exp-btn-salvar').addEventListener('click', async () => {
+    if (expSalvando || !expListasArquivo.length) return;
+    expSalvando = true;
+    const btn = $('#exp-btn-salvar');
+    const textoOriginal = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px"></div><span>Salvando…</span>';
+    try {
+      const listas = expListasArquivo;
+      const agora = new Date().toISOString();
+      for (let k = 0; k < listas.length; k += 400) {
+        const batch = writeBatch(db);
+        for (const l of listas.slice(k, k + 400)) {
+          batch.set(doc(db, 'expedicao_listas', l.id), { ...l, atualizadoEm: agora });
+        }
+        await batch.commit();
+      }
+      // refaz o resumo de cada dia que apareceu no arquivo, com todas as listas salvas desse dia
+      const dias = [...new Set(listas.map(l => l.data).filter(Boolean))];
+      for (const dia of dias) {
+        const snap = await getDocs(query(collection(db, 'expedicao_listas'), where('data', '==', dia)));
+        await setDoc(doc(db, 'expedicao_dias', dia), expResumirDia(dia, snap.docs.map(d => d.data())));
+      }
+      toast(`${expFmtNum(listas.length)} lista(s) salva(s) · indicadores de ${dias.length} dia(s) atualizados.`);
+      $('#exp-input-arquivo').value = '';
+      $('#exp-select-planilha').classList.add('hidden');
+      expLimparImportacao();
+      trocarAbaExpedicao('dashboard');
+    } catch (err) {
+      console.error(err);
+      toast('Erro ao salvar as listas: ' + (err.message || err), 'erro');
+    } finally {
+      expSalvando = false;
+      btn.disabled = false;
+      btn.innerHTML = textoOriginal;
+    }
+  });
+
+  // ---------- Dashboard ----------
+  // número de volumes dentro do topo da barra (fora dela, se a barra for baixa)
+  const expRotulosVolumes = {
+    id: 'expRotulosVolumes',
+    afterDatasetsDraw(chart) {
+      const { ctx } = chart;
+      chart.data.datasets.forEach((dataset, di) => {
+        if (dataset.type === 'line') return;
+        chart.getDatasetMeta(di).data.forEach((bar, i) => {
+          const valor = dataset.data[i];
+          if (valor === null || valor === undefined) return;
+          const dentro = (bar.base - bar.y) > 22;
+          ctx.save();
+          ctx.fillStyle = dentro ? '#ffffff' : '#1f2430';
+          ctx.font = '600 10px Inter, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = dentro ? 'top' : 'bottom';
+          ctx.fillText(expFmtNum(valor), bar.x, dentro ? bar.y + 5 : bar.y - 4);
+          ctx.restore();
+        });
+      });
+    }
+  };
+  let expCarregando = false;
+  async function expCarregarDashboard() {
+    if (expCarregando) return;
+    expCarregando = true;
+    $('#exp-dash-carregando').classList.remove('hidden');
+    try {
+      const snap = await getDocs(query(collection(db, 'expedicao_dias')));
+      const todos = snap.docs.map(d => d.data()).filter(d => d && d.data && d.listas > 0)
+        .sort((a, b) => (a.data < b.data ? -1 : a.data > b.data ? 1 : 0));
+      expRenderDashboard(todos.slice(-EXP_DIAS_JANELA));
+    } catch (err) {
+      console.error(err);
+      toast('Erro ao carregar os indicadores da Expedição: ' + (err.message || err), 'erro');
+    } finally {
+      expCarregando = false;
+      $('#exp-dash-carregando').classList.add('hidden');
+    }
+  }
+
+  function expRenderDashboard(dias) {
+    const temDados = dias.length > 0;
+    $('#exp-dash-vazio').classList.toggle('hidden', temDados);
+    $('#exp-dash-conteudo').classList.toggle('hidden', !temDados);
+    if (!temDados) { $('#exp-periodo').textContent = ''; return; }
+
+    const soma = (campo) => dias.reduce((a, d) => a + (d[campo] || 0), 0);
+    const volumes = soma('volumes');
+    const volumesComTempo = soma('volumesComTempo');
+    const tempoSeg = soma('tempoExecSeg');
+    const listas = soma('listas');
+    const volHora = tempoSeg > 0 ? volumesComTempo / (tempoSeg / 3600) : null;
+    const volDia = volumes / dias.length;
+    const inicio = dias[0].data, fim = dias[dias.length - 1].data;
+    const temHoje = fim === expHojeISO();
+
+    $('#exp-periodo').textContent = `${dias.length} dia(s) com listas concluídas · ${formatDataBR(inicio)} a ${formatDataBR(fim)}`
+      + (dias.length < EXP_DIAS_JANELA ? ` · ainda não há ${EXP_DIAS_JANELA} dias de registro, a média usa os que existem` : '');
+    $('#exp-kpi-volhora').textContent = expFmtNum(volHora, 1);
+    $('#exp-kpi-voldia').textContent = expFmtNum(volDia, 1);
+    $('#exp-kpi-voldia-sub').textContent = `${expFmtNum(volumes)} volumes ÷ ${dias.length} dia(s)` + (temHoje ? ' · inclui hoje (parcial)' : '');
+    $('#exp-kpi-volumes').textContent = expFmtNum(volumes);
+    $('#exp-kpi-volumes-sub').textContent = `Tempo de execução: ${expFmtDuracao(tempoSeg)}`;
+    $('#exp-kpi-listas').textContent = expFmtNum(listas);
+    $('#exp-kpi-listas-sub').textContent = `${expFmtNum(listas / dias.length, 1)} lista(s) por dia`;
+
+    // gráfico: barras = volumes do dia, linha = volumes/hora do dia
+    const labels = dias.map(d => formatDataBR(d.data));
+    const volHoraDia = dias.map(d => d.tempoExecSeg > 0 ? Math.round(d.volumesComTempo / (d.tempoExecSeg / 3600) * 10) / 10 : null);
+    const opts = baseOptions((v) => expFmtNum(v));
+    opts.scales.y.beginAtZero = true;
+    opts.scales.y.title = { display: true, text: 'Volumes no dia', color: '#8b93a3' };
+    opts.scales.y1 = {
+      position: 'right', beginAtZero: true, grid: { drawOnChartArea: false },
+      ticks: { color: '#8b93a3', callback: (v) => expFmtNum(v) },
+      title: { display: true, text: 'Volumes/hora', color: '#8b93a3' },
+    };
+    opts.plugins.tooltip = { callbacks: { label: (c) => `${c.dataset.label}: ${expFmtNum(c.parsed.y, c.dataset.yAxisID === 'y1' ? 1 : 0)}` } };
+    desenharGrafico('exp-chart-dias', {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          { type: 'line', label: 'Volumes/hora', data: volHoraDia, yAxisID: 'y1', borderColor: '#f5a623', backgroundColor: '#f5a623', tension: .3, pointRadius: 3, spanGaps: true, order: 0 },
+          { type: 'bar', label: 'Volumes separados', data: dias.map(d => d.volumes), yAxisID: 'y', backgroundColor: '#3b82f6', borderRadius: 4, maxBarThickness: 56, order: 1 },
+        ],
+      },
+      options: opts,
+      plugins: [expRotulosVolumes],
+    });
+
+    // por dia (mais recente primeiro)
+    $('#exp-tabela-dias').innerHTML = [...dias].reverse().map(d => `
+      <tr class="border-b border-[var(--border)]/50">
+        <td class="py-1.5 pr-3 font-mono">${formatDataBR(d.data)}${d.data === expHojeISO() ? ' <span class="text-[10px] text-[var(--text-dim)]">(hoje)</span>' : ''}</td>
+        <td class="py-1.5 pr-3 font-mono text-right">${expFmtNum(d.listas)}</td>
+        <td class="py-1.5 pr-3 font-mono text-right">${expFmtNum(d.volumes)}</td>
+        <td class="py-1.5 pr-3 font-mono text-right">${expFmtDuracao(d.tempoExecSeg)}</td>
+        <td class="py-1.5 font-mono text-right">${d.tempoExecSeg > 0 ? expFmtNum(d.volumesComTempo / (d.tempoExecSeg / 3600), 1) : '–'}</td>
+      </tr>`).join('');
+
+    // por separador, somando os dias do período
+    const sep = {};
+    for (const d of dias) {
+      for (const [nome, r] of Object.entries(d.porResponsavel || {})) {
+        const s = (sep[nome] ||= { dias: 0, listas: 0, volumes: 0, volumesComTempo: 0, tempoExecSeg: 0 });
+        s.dias += 1; s.listas += r.listas || 0; s.volumes += r.volumes || 0;
+        s.volumesComTempo += r.volumesComTempo || 0; s.tempoExecSeg += r.tempoExecSeg || 0;
+      }
+    }
+    $('#exp-tabela-separadores').innerHTML = Object.entries(sep).sort((a, b) => b[1].volumes - a[1].volumes).map(([nome, s]) => `
+      <tr class="border-b border-[var(--border)]/50">
+        <td class="py-1.5 pr-3">${expEsc(nome)}</td>
+        <td class="py-1.5 pr-3 font-mono text-right">${s.dias}</td>
+        <td class="py-1.5 pr-3 font-mono text-right">${expFmtNum(s.listas)}</td>
+        <td class="py-1.5 pr-3 font-mono text-right">${expFmtNum(s.volumes)}</td>
+        <td class="py-1.5 pr-3 font-mono text-right">${expFmtDuracao(s.tempoExecSeg)}</td>
+        <td class="py-1.5 font-mono text-right">${s.tempoExecSeg > 0 ? expFmtNum(s.volumesComTempo / (s.tempoExecSeg / 3600), 1) : '–'}</td>
+      </tr>`).join('');
+  }
+
 
   function trocarAba(nome) {
     $$('[data-tab]').forEach(b => b.classList.toggle('active', b.dataset.tab === nome));

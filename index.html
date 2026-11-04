@@ -570,8 +570,9 @@
           Com <b>Separador: Todos</b> no Dashboard, a meta de cada dia é a <b>soma das metas individuais de quem é
           separador e separou naquele dia</b> (no turno filtrado). Quem não é separador tem os volumes e as horas somados
           normalmente, mas não soma meta. Ex.: duas pessoas separaram, cada separador deve fazer 100 volumes/dia, mas
-          uma delas não é separador → a meta do dia é 100, e os volumes das duas contam. A meta de volumes por hora da
-          equipe é a média das metas dos separadores, ponderada pelas horas que cada um trabalhou.
+          uma delas não é separador → a meta do dia é 100, e os volumes das duas contam. A meta de volumes por dia de cada
+          separador é a meta de volumes por hora × a jornada estimada dele; a meta de volumes por hora da equipe é a média
+          das metas dos separadores, ponderada pelas horas que cada um trabalhou.
         </p>
       </div>
 
@@ -580,7 +581,8 @@
         <p class="text-sm text-[var(--text-dim)] mb-4">
           Marque quem é separador — só eles entram no cálculo de meta. O turno define em qual turno a pessoa aparece
           no filtro do Dashboard. Quem aparece numa importação nova entra aqui sozinho, como separador, no Turno 1 e com
-          meta de 7h trabalhadas por dia (como nas empilhadeiras). Meta em branco = sem meta.
+          jornada estimada de 7h por dia (como nas empilhadeiras). A meta de volumes por dia é calculada sozinha:
+          meta de volumes por hora × jornada estimada. Meta em branco = sem meta.
         </p>
         <div id="exp-cfg-vazio" class="hidden text-sm text-[var(--text-dim)]">Nenhum separador ainda — eles aparecem aqui depois da primeira importação.</div>
         <div id="exp-cfg-separadores" class="space-y-3"></div>
@@ -1231,7 +1233,8 @@ function montarApp(){
 
   // ---------- Configurações (metas e turnos) ----------
   // config/expedicao = {
-  //   separadores: { 'Nome': { turno: 1|2, separador: true|false, metaVolHora, metaVolDia, metaHorasDia } }
+  //   separadores: { 'Nome': { turno: 1|2, separador: true|false, metaVolHora, metaHorasDia } }
+  //   (a meta de volumes por dia não é guardada: é metaVolHora × metaHorasDia)
   //   (turnos: metas fixas antigas por turno — não são mais usadas)
   // }  (meta em branco = null = sem meta; metaHorasDia em horas — separador
   //     ainda não configurado usa a jornada padrão de 7h, como nas empilhadeiras)
@@ -1252,13 +1255,17 @@ function montarApp(){
     return h ? Math.round(h * 3600) : null;
   };
   const expMetaNum = (v) => (v === null || v === undefined || v === '' || !isFinite(Number(v)) || Number(v) <= 0) ? null : Number(v);
+  const expMetaVolDia = (volHora, horasDiaSeg) => (volHora && horasDiaSeg) ? Math.round(volHora * horasDiaSeg / 3600) : null;
   // quem não tiver a caixa "É separador" desmarcada é separador (padrão)
   const expEhSeparador = (nome) => !(expConfig.separadores[nome] && expConfig.separadores[nome].separador === false);
   // metas individuais; quem não é separador não tem meta
   function expMetasIndividuais(nome) {
     if (!expEhSeparador(nome)) return { volHora: null, volDia: null, horasDiaSeg: null };
     const m = expConfig.separadores[nome] || {};
-    return { volHora: expMetaNum(m.metaVolHora), volDia: expMetaNum(m.metaVolDia), horasDiaSeg: expMetaHorasSeg(m, true) };
+    const volHora = expMetaNum(m.metaVolHora);
+    const horasDiaSeg = expMetaHorasSeg(m, true);
+    // meta de volumes por dia = meta de volumes por hora × jornada estimada
+    return { volHora, horasDiaSeg, volDia: expMetaVolDia(volHora, horasDiaSeg) };
   }
 
   async function expRenderConfig() {
@@ -1299,12 +1306,12 @@ function montarApp(){
             <input type="number" min="0" step="0.1" data-campo="metaVolHora" value="${valor(s.metaVolHora)}" placeholder="sem meta" class="w-full rounded-lg px-3 py-2 text-sm">
           </div>
           <div>
-            <label class="block text-xs text-[var(--text-dim)] mb-1">Meta de volumes por dia</label>
-            <input type="number" min="0" step="1" data-campo="metaVolDia" value="${valor(s.metaVolDia)}" placeholder="sem meta" class="w-full rounded-lg px-3 py-2 text-sm">
+            <label class="block text-xs text-[var(--text-dim)] mb-1">Jornada estimada (h/dia)</label>
+            <input type="number" min="0" step="0.5" data-campo="metaHorasDia" value="${s.metaHorasDia === undefined ? EXP_JORNADA_PADRAO_H : valor(s.metaHorasDia)}" placeholder="sem meta" class="w-full rounded-lg px-3 py-2 text-sm">
           </div>
           <div>
-            <label class="block text-xs text-[var(--text-dim)] mb-1">Meta de horas trabalhadas (h/dia)</label>
-            <input type="number" min="0" step="0.5" data-campo="metaHorasDia" value="${s.metaHorasDia === undefined ? EXP_JORNADA_PADRAO_H : valor(s.metaHorasDia)}" placeholder="sem meta" class="w-full rounded-lg px-3 py-2 text-sm">
+            <label class="block text-xs text-[var(--text-dim)] mb-1">Meta de volumes por dia <span class="text-[10px]">(calculada)</span></label>
+            <div data-campo="metaVolDiaCalc" class="w-full rounded-lg px-3 py-2 text-sm font-mono border border-dashed border-[var(--border)] text-[var(--text-dim)]" title="Meta de volumes por hora × jornada estimada"></div>
           </div>
         </div>
       </div>`;
@@ -1315,13 +1322,24 @@ function montarApp(){
   function expAjustarCardSeparador(card) {
     const eh = card.querySelector('[data-campo="separador"]').checked;
     card.querySelector('.exp-cfg-nao-sep').classList.toggle('hidden', eh);
-    card.querySelectorAll('[data-campo="metaVolHora"], [data-campo="metaVolDia"], [data-campo="metaHorasDia"]').forEach(inp => {
+    card.querySelectorAll('[data-campo="metaVolHora"], [data-campo="metaHorasDia"]').forEach(inp => {
       inp.disabled = !eh;
       inp.style.opacity = eh ? '' : '.45';
     });
+    // meta de volumes por dia = volumes/hora × jornada, atualizada enquanto digita
+    const volHora = expMetaNum(card.querySelector('[data-campo="metaVolHora"]').value.replace(',', '.'));
+    const horas = expMetaNum(card.querySelector('[data-campo="metaHorasDia"]').value.replace(',', '.'));
+    const calc = expMetaVolDia(volHora, horas ? horas * 3600 : null);
+    const el = card.querySelector('[data-campo="metaVolDiaCalc"]');
+    el.textContent = !eh ? 'não é separador' : calc === null ? 'preencha volumes/hora e jornada' : `${expFmtNum(calc)} volumes`;
+    el.style.color = eh && calc !== null ? 'var(--text)' : '';
+    el.style.opacity = eh ? '' : '.45';
   }
   $('#exp-cfg-separadores').addEventListener('change', (e) => {
     if (e.target.matches('[data-campo="separador"]')) expAjustarCardSeparador(e.target.closest('[data-cfg-sep]'));
+  });
+  $('#exp-cfg-separadores').addEventListener('input', (e) => {
+    if (e.target.matches('[data-campo="metaVolHora"], [data-campo="metaHorasDia"]')) expAjustarCardSeparador(e.target.closest('[data-cfg-sep]'));
   });
 
   $('#exp-btn-salvar-config').addEventListener('click', async () => {
@@ -1333,7 +1351,6 @@ function montarApp(){
         turno: Number(card.querySelector('[data-campo="turno"]').value) === 2 ? 2 : 1,
         separador: card.querySelector('[data-campo="separador"]').checked,
         metaVolHora: lerMeta(card.querySelector('[data-campo="metaVolHora"]')),
-        metaVolDia: lerMeta(card.querySelector('[data-campo="metaVolDia"]')),
         metaHorasDia: lerMeta(card.querySelector('[data-campo="metaHorasDia"]')),
       };
     });

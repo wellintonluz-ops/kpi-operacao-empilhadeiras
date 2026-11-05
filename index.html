@@ -10,6 +10,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
 <style>
+    .chart-box { position: relative; height: 300px; width: 100%; }
+    @media (max-width: 640px) { .chart-box { height: 240px; } }
   :root{
     --bg:#f3f4f6; --panel:#ffffff; --panel-2:#f8f9fb; --border:#e2e5eb;
     --text:#1f2430; --text-dim:#6b7280; --accent:#f5a623; --accent-2:#3b82f6;
@@ -194,11 +196,11 @@
         <div class="grid lg:grid-cols-2 gap-4">
           <div class="panel rounded-xl p-4">
             <p class="text-sm font-semibold mb-3">Movimentações efetivas vs meta</p>
-            <canvas id="chart-efetivo" height="220"></canvas>
+            <div class="chart-box"><canvas id="chart-efetivo" height="220"></canvas></div>
           </div>
           <div class="panel rounded-xl p-4">
             <p class="text-sm font-semibold mb-3">% Produtividade e % Utilização</p>
-            <canvas id="chart-percentuais" height="220"></canvas>
+            <div class="chart-box"><canvas id="chart-percentuais" height="220"></canvas></div>
           </div>
         </div>
       </div>
@@ -209,13 +211,13 @@
           <p class="text-sm font-semibold">Histórico mensal — % Produtividade e % Utilização</p>
           <p class="text-[11px] text-[var(--text-dim)]">Todos os meses salvos · não depende do período filtrado</p>
         </div>
-        <canvas id="chart-mensal" height="180"></canvas>
+        <div class="chart-box"><canvas id="chart-mensal" height="180"></canvas></div>
       </div>
 
       <div id="dash-conteudo-2" class="hidden space-y-5 fade-in">
         <div id="bloco-comparativo" class="hidden panel rounded-xl p-4">
           <p class="text-sm font-semibold mb-3">Comparativo entre operadores (médias do período)</p>
-          <canvas id="chart-comparativo" height="180"></canvas>
+          <div class="chart-box"><canvas id="chart-comparativo" height="180"></canvas></div>
         </div>
 
         <div id="bloco-quantidade-dia" class="hidden panel rounded-xl p-4">
@@ -226,12 +228,12 @@
               <button type="button" data-modo-qtd="mes" class="btn-modo-qtd px-3 py-1.5 transition border-l border-[var(--border)]">Por mês</button>
             </div>
           </div>
-          <canvas id="chart-quantidade-dia" height="200"></canvas>
+          <div class="chart-box"><canvas id="chart-quantidade-dia" height="200"></canvas></div>
         </div>
 
         <div id="bloco-quantidade-total" class="hidden panel rounded-xl p-4">
           <p class="text-sm font-semibold mb-3" id="titulo-tempo-medio-dia">Tempo médio por movimentação no dia vs meta (todos os operadores)</p>
-          <canvas id="chart-quantidade-total" height="180"></canvas>
+          <div class="chart-box"><canvas id="chart-quantidade-total" height="180"></canvas></div>
         </div>
 
         <div class="panel rounded-xl p-4 overflow-x-auto">
@@ -317,17 +319,17 @@
 
         <div class="panel rounded-xl p-4">
           <p class="text-sm font-semibold mb-3">Efetivo por hora vs meta por hora</p>
-          <canvas id="chart-tr-efetivo" height="220"></canvas>
+          <div class="chart-box"><canvas id="chart-tr-efetivo" height="220"></canvas></div>
         </div>
 
         <div class="panel rounded-xl p-4">
           <p class="text-sm font-semibold mb-3">% Produtividade e % Utilização por hora</p>
-          <canvas id="chart-tr-percentuais" height="220"></canvas>
+          <div class="chart-box"><canvas id="chart-tr-percentuais" height="220"></canvas></div>
         </div>
 
         <div class="panel rounded-xl p-4">
           <p class="text-sm font-semibold mb-3">Tempo médio por movimentação por hora vs meta</p>
-          <canvas id="chart-tr-tempo-medio" height="220"></canvas>
+          <div class="chart-box"><canvas id="chart-tr-tempo-medio" height="220"></canvas></div>
         </div>
 
         <div class="panel rounded-xl p-4 overflow-x-auto">
@@ -2158,6 +2160,7 @@ function montarApp(){
     const labels = dias.map(d => formatDataBR(d.data));
     const volHoraDia = dias.map(d => d.tempoExecSeg > 0 ? Math.round(d.volumesComTempo / (d.tempoExecSeg / 3600) * 10) / 10 : null);
     const opts = baseOptions((v) => expFmtNum(v));
+    opts.maintainAspectRatio = true; // este gráfico segue a proporção da largura
     opts.scales.y.beginAtZero = true;
     opts.scales.y.title = { display: true, text: 'Volumes no dia', color: '#8b93a3' };
     opts.scales.y1 = {
@@ -4424,6 +4427,7 @@ function montarApp(){
   function baseOptions(tickFormatter) {
     return {
       responsive: true,
+      maintainAspectRatio: false,
       interaction: { mode: 'index', intersect: false },
       plugins: { legend: { labels: { color: '#8b93a3' } } },
       scales: {

@@ -34,6 +34,23 @@
     background:#ffffff; border:1px solid var(--border); color:var(--text);
   }
   input:focus, select:focus{outline:2px solid var(--accent-2); outline-offset:1px;}
+  /* ícone "!" que explica como o gráfico é calculado (passar o mouse ou clicar) */
+  .info-dica{position:relative; display:inline-block; vertical-align:middle;}
+  .info-dica-btn{width:20px; height:20px; border-radius:9999px; border:1px solid var(--border); background:var(--panel-2);
+    color:var(--text-dim); font-size:12px; font-weight:700; line-height:1; cursor:pointer; display:inline-flex; align-items:center; justify-content:center;}
+  .info-dica-btn:hover, .info-dica.aberta .info-dica-btn{background:var(--accent); border-color:var(--accent); color:#000;}
+  .info-dica-caixa{display:none; position:absolute; left:0; top:100%; padding-top:8px; z-index:40; width:min(460px, calc(100vw - 48px));}
+  .info-dica:hover .info-dica-caixa, .info-dica.aberta .info-dica-caixa{display:block;}
+  @media (max-width:640px){ .info-dica{position:static;} .info-dica-caixa{left:0; right:0; width:auto;} }
+  .info-dica-corpo{background:var(--panel); border:1px solid var(--border); border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,.15);
+    padding:14px 16px; font-size:12px; font-weight:400; line-height:1.5; color:var(--text); text-align:left; max-height:70vh; overflow-y:auto;}
+  .info-dica-corpo p{margin:0 0 6px;} .info-dica-corpo p:last-child{margin-bottom:0;}
+  .info-dica-corpo .tit{font-weight:600; font-size:13px; margin-bottom:8px;}
+  .info-dica-corpo .serie{display:flex; gap:8px; margin-bottom:7px;}
+  .info-dica-corpo .serie i{flex:none; width:18px; height:0; margin-top:8px; border-top:3px solid currentColor;}
+  .info-dica-corpo .serie i.barra{height:10px; margin-top:3px; border:0; background:currentColor; border-radius:2px;}
+  .info-dica-corpo .serie i.trac{border-top-style:dashed;} .info-dica-corpo .serie i.pont{border-top-style:dotted;}
+  .info-dica-corpo .dim{color:var(--text-dim);}
   .badge-ok{background:rgba(34,197,94,.12); color:var(--ok); border:1px solid rgba(34,197,94,.35);}
   .badge-warn{background:rgba(245,158,11,.12); color:var(--warn); border:1px solid rgba(245,158,11,.35);}
   .badge-danger{background:rgba(239,68,68,.12); color:var(--danger); border:1px solid rgba(239,68,68,.35);}
@@ -545,7 +562,22 @@
         </div>
 
         <div class="panel rounded-xl p-5">
-          <p class="text-sm font-semibold mb-3">Volumes separados por dia, metas e média de volumes por hora</p>
+          <div class="relative flex items-center gap-2 mb-3">
+            <p class="text-sm font-semibold">Volumes separados por dia, metas e média de volumes por hora</p>
+            <span class="info-dica">
+              <button type="button" class="info-dica-btn" aria-label="Como este gráfico é calculado" aria-haspopup="true">!</button>
+              <div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo">
+                <p class="tit">Como este gráfico é calculado</p>
+                <p class="dim">Cada ponto é um dia. Só entram listas <b>concluídas</b>, no dia da conclusão (até 00:29 conta no dia anterior). Valem os filtros de Turno e Separador, e dias sem lista não aparecem.</p>
+                <div class="serie" style="color:#3b82f6"><i class="barra"></i><div style="color:var(--text)"><b>Volumes separados</b> (eixo esquerdo): soma dos volumes das listas concluídas do dia.</div></div>
+                <div class="serie" style="color:#f5a623"><i></i><div style="color:var(--text)"><b>Volumes/hora</b> (eixo direito): volumes ÷ soma do tempo de execução das listas, em horas. É o tempo de cada lista somado, não hora de relógio. Lista sem tempo fica fora da conta.</div></div>
+                <div class="serie" style="color:#ef4444"><i class="trac"></i><div style="color:var(--text)"><b>Meta (quadro previsto)</b>: pessoas previstas × meta de volumes/hora × jornada, por turno (soma dos dois turnos em "Todos"). Com um separador escolhido, vira a meta de uma pessoa do turno dele.</div></div>
+                <div class="serie" style="color:#64748b"><i class="trac"></i><div style="color:var(--text)"><b>Meta (com quem separou)</b>: só com "Todos". Soma, de cada separador que concluiu lista no dia, meta/hora × jornada do turno dele. Quem não é separador conta nos volumes e nas horas, mas não na meta.</div></div>
+                <div class="serie" style="color:#b45309"><i class="pont"></i><div style="color:var(--text)"><b>Meta volumes/hora</b> (eixo direito): meta por hora do turno. Com turnos diferentes, é a média ponderada pelas horas de execução de cada separador.</div></div>
+                <p class="dim">Como ler: barra abaixo da meta do quadro previsto, mas perto da meta de quem separou, indica falta de pessoas. Linha laranja abaixo da marrom indica rendimento por hora abaixo da meta.</p>
+              </div></div>
+            </span>
+          </div>
           <canvas id="exp-chart-dias" height="90"></canvas>
         </div>
 
@@ -2410,6 +2442,14 @@ function montarApp(){
       toast('Erro ao gerar o Excel: ' + (e.message || e), 'erro');
     }
   });
+
+  // ícone "!" de explicação: no computador abre ao passar o mouse; clique abre/fecha (celular)
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.info-dica-btn');
+    document.querySelectorAll('.info-dica.aberta').forEach(el => { if (!btn || el !== btn.parentElement) el.classList.remove('aberta'); });
+    if (btn) btn.parentElement.classList.toggle('aberta');
+  });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') document.querySelectorAll('.info-dica.aberta').forEach(el => el.classList.remove('aberta')); });
 
   function trocarAba(nome) {
     $$('[data-tab]').forEach(b => b.classList.toggle('active', b.dataset.tab === nome));

@@ -42,9 +42,10 @@
   .info-dica-caixa{display:none; position:absolute; left:0; top:100%; padding-top:8px; z-index:40; width:min(460px, calc(100vw - 48px));}
   .info-dica:hover .info-dica-caixa, .info-dica.aberta .info-dica-caixa{display:block;}
   @media (max-width:640px){ .info-dica{position:static;} .info-dica-caixa{left:0; right:0; width:auto;} }
+  .info-dica.dir .info-dica-caixa{left:auto; right:0;}
   .info-dica-corpo{background:var(--panel); border:1px solid var(--border); border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,.15);
     padding:14px 16px; font-size:12px; font-weight:400; line-height:1.5; color:var(--text); text-align:left; max-height:70vh; overflow-y:auto;}
-  .info-dica-corpo p{margin:0 0 6px;} .info-dica-corpo p:last-child{margin-bottom:0;}
+  .info-dica-corpo p{margin:0 0 6px;} .info-dica-corpo p b{font-weight:600;} .info-dica-corpo p:last-child{margin-bottom:0;}
   .info-dica-corpo .tit{font-weight:600; font-size:13px; margin-bottom:8px;}
   .info-dica-corpo .serie{display:flex; gap:8px; margin-bottom:7px;}
   .info-dica-corpo .serie i{flex:none; width:18px; height:0; margin-top:8px; border-top:3px solid currentColor;}
@@ -212,11 +213,11 @@
 
         <div class="grid lg:grid-cols-2 gap-4">
           <div class="panel rounded-xl p-4">
-            <p class="text-sm font-semibold mb-3">Movimentações efetivas vs meta</p>
+            <div class="relative flex items-center gap-2 mb-3"><p class="text-sm font-semibold">Movimentações efetivas vs meta</p><span class="info-dica"><button type="button" class="info-dica-btn" aria-label="Como este gráfico é calculado" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como este gráfico é calculado</p><p class="dim">Cada ponto é um dia do período filtrado (com "Todos", somando todos os operadores).</p><div class="serie" style="color:#3b82f6"><i class="barra"></i><div style="color:var(--text)"><b>Efetivo</b>: total de movimentações do dia (soma dos operadores).</div></div><div class="serie" style="color:#f5a623"><i></i><div style="color:var(--text)"><b>Meta</b>: meta diária de cada operador do filtro somada (por exemplo 147 por operador). É uma linha fixa: não cai em dia de falta ou sem importação.</div></div><p class="dim"><b>Efetivo</b> = movimentações do operador em que a origem ou o destino é porta-pallet (locação "PP" + número). O <b>intervalo</b> de uma movimentação é o tempo desde a anterior do mesmo dia: se for até o limite (padrão 15 min) é "ok"; acima disso é uma parada "a verificar". Movimentações até 00:29 contam no dia anterior.</p></div></div></span></div>
             <div class="chart-box"><canvas id="chart-efetivo" height="220"></canvas></div>
           </div>
           <div class="panel rounded-xl p-4">
-            <p class="text-sm font-semibold mb-3">% Produtividade e % Utilização</p>
+            <div class="relative flex items-center gap-2 mb-3"><p class="text-sm font-semibold">% Produtividade e % Utilização</p><span class="info-dica"><button type="button" class="info-dica-btn" aria-label="Como este gráfico é calculado" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como este gráfico é calculado</p><p class="dim">Um ponto por dia. Com "Todos", é a média simples dos operadores que têm registro naquele dia.</p><div class="serie" style="color:#22c55e"><i></i><div style="color:var(--text)"><b>% Produtividade</b> = efetivo do dia ÷ meta diária do operador.</div></div><div class="serie" style="color:#f5a623"><i></i><div style="color:var(--text)"><b>% Utilização</b> = horas trabalhadas ÷ horas estimadas (jornada, padrão 7h). Horas trabalhadas = soma dos intervalos "ok" + o tempo das paradas aprovadas como justificadas na revisão.</div></div><p class="dim">Paradas acima do limite não revisadas (ou reprovadas) não contam como hora trabalhada.</p></div></div></span></div>
             <div class="chart-box"><canvas id="chart-percentuais" height="220"></canvas></div>
           </div>
         </div>
@@ -225,7 +226,7 @@
       <!-- fora dos blocos do período: o histórico aparece mesmo quando o período filtrado está vazio -->
       <div id="bloco-mensal" class="hidden panel rounded-xl p-4">
         <div class="flex items-baseline justify-between gap-3 mb-3 flex-wrap">
-          <p class="text-sm font-semibold">Histórico mensal — % Produtividade e % Utilização</p>
+          <div class="relative flex items-center gap-2"><p class="text-sm font-semibold">Histórico mensal — % Produtividade e % Utilização</p><span class="info-dica"><button type="button" class="info-dica-btn" aria-label="Como este gráfico é calculado" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como este gráfico é calculado</p><p class="dim">Usa <b>todos os meses salvos</b>, sem depender do período filtrado.</p><div class="serie" style="color:#22c55e"><i class="barra"></i><div style="color:var(--text)"><b>% Produtividade média</b>: média dos % de produtividade de todos os dias de cada operador no mês (cada operador/dia pesa igual).</div></div><div class="serie" style="color:#f5a623"><i class="barra"></i><div style="color:var(--text)"><b>% Utilização média</b>: o mesmo para a utilização (horas trabalhadas ÷ horas estimadas).</div></div><div class="serie" style="color:#ef4444"><i class="trac"></i><div style="color:var(--text)"><b>Meta (100%)</b>.</div></div><p class="dim">O eixo vai até 100%: barra acima disso passa do topo e o valor aparece no rótulo.</p></div></div></span></div>
           <p class="text-[11px] text-[var(--text-dim)]">Todos os meses salvos · não depende do período filtrado</p>
         </div>
         <div class="chart-box"><canvas id="chart-mensal" height="180"></canvas></div>
@@ -233,13 +234,13 @@
 
       <div id="dash-conteudo-2" class="hidden space-y-5 fade-in">
         <div id="bloco-comparativo" class="hidden panel rounded-xl p-4">
-          <p class="text-sm font-semibold mb-3">Comparativo entre operadores (médias do período)</p>
+          <div class="relative flex items-center gap-2 mb-3"><p class="text-sm font-semibold">Comparativo entre operadores (médias do período)</p><span class="info-dica"><button type="button" class="info-dica-btn" aria-label="Como este gráfico é calculado" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como este gráfico é calculado</p><p class="dim">Só aparece com o operador "Todos (comparativo)". Uma dupla de barras por operador, com os dias do período filtrado.</p><div class="serie" style="color:#22c55e"><i class="barra"></i><div style="color:var(--text)"><b>% Produtividade média</b>: média dos % diários (efetivo ÷ meta diária) do operador.</div></div><div class="serie" style="color:#f5a623"><i class="barra"></i><div style="color:var(--text)"><b>% Utilização média</b>: média dos % diários de utilização (horas trabalhadas ÷ horas estimadas).</div></div><div class="serie" style="color:#ef4444"><i class="trac"></i><div style="color:var(--text)"><b>Meta (100%)</b>.</div></div></div></div></span></div>
           <div class="chart-box"><canvas id="chart-comparativo" height="180"></canvas></div>
         </div>
 
         <div id="bloco-quantidade-dia" class="hidden panel rounded-xl p-4">
           <div class="flex items-center justify-between gap-3 mb-3 flex-wrap">
-            <p class="text-sm font-semibold" id="titulo-quantidade-dia">Quantidade de movimentações por dia (por operador)</p>
+            <div class="relative flex items-center gap-2"><p class="text-sm font-semibold" id="titulo-quantidade-dia">Quantidade de movimentações por dia (por operador)</p><span class="info-dica"><button type="button" class="info-dica-btn" aria-label="Como este gráfico é calculado" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como este gráfico é calculado</p><p class="dim">Só aparece com "Todos (comparativo)". O botão alterna entre as duas visões.</p><p><b>Por dia:</b> uma barra empilhada por dia, com uma cor por operador. Cada parte é o efetivo (movimentações) daquele operador no dia.</p><p><b>Por mês:</b> barras lado a lado, uma por operador, somando as movimentações do mês.</p><div class="serie" style="color:#ef4444"><i class="trac"></i><div style="color:var(--text)"><b>Meta até o momento</b> (só no modo mês): meta diária × número de dias do mês com pelo menos um registro (de qualquer operador). Dá para comparar direto com a barra do mês.</div></div></div></div></span></div>
             <div class="flex text-xs font-medium rounded-lg border border-[var(--border)] overflow-hidden">
               <button type="button" data-modo-qtd="dia" class="btn-modo-qtd px-3 py-1.5 transition">Por dia</button>
               <button type="button" data-modo-qtd="mes" class="btn-modo-qtd px-3 py-1.5 transition border-l border-[var(--border)]">Por mês</button>
@@ -249,18 +250,19 @@
         </div>
 
         <div id="bloco-quantidade-total" class="hidden panel rounded-xl p-4">
-          <p class="text-sm font-semibold mb-3" id="titulo-tempo-medio-dia">Tempo médio por movimentação no dia vs meta (todos os operadores)</p>
+          <div class="relative flex items-center gap-2 mb-3"><p class="text-sm font-semibold" id="titulo-tempo-medio-dia">Tempo médio por movimentação no dia vs meta (todos os operadores)</p><span class="info-dica"><button type="button" class="info-dica-btn" aria-label="Como este gráfico é calculado" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como este gráfico é calculado</p><p class="dim">Um ponto por dia. Com "Todos", junta todos os operadores; com um operador filtrado, mostra só o dele.</p><div class="serie" style="color:#3b82f6"><i></i><div style="color:var(--text)"><b>Tempo médio no dia</b> = soma dos intervalos "ok" ÷ número de intervalos "ok". Com vários operadores é uma média ponderada: quem fez mais movimentações pesa mais.</div></div><div class="serie" style="color:#ef4444"><i class="trac"></i><div style="color:var(--text)"><b>Meta</b>: tempo médio meta por movimentação (padrão 02:52); com vários operadores, a média das metas.</div></div><p class="dim">Quanto menor, melhor: abaixo da linha vermelha significa mais rápido que a meta. Paradas "a verificar" e paradas justificadas não entram nesta média.</p></div></div></span></div>
           <div class="chart-box"><canvas id="chart-quantidade-total" height="180"></canvas></div>
         </div>
 
-        <div class="panel rounded-xl p-4 overflow-x-auto">
+        <div class="panel rounded-xl p-4">
           <div class="flex items-center justify-between gap-3 mb-3">
-            <p class="text-sm font-semibold">Detalhamento diário</p>
+            <div class="relative flex items-center gap-2"><p class="text-sm font-semibold">Detalhamento diário</p><span class="info-dica"><button type="button" class="info-dica-btn" aria-label="Como esta tabela é calculada" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como esta tabela é calculada</p><p class="dim">Uma linha por operador e dia do período filtrado.</p><p><b>Efetivo:</b> movimentações do dia (origem ou destino em porta-pallet).</p><p><b>Meta:</b> meta diária do operador.</p><p><b>% Prod.:</b> efetivo ÷ meta.</p><p><b>Horas trab.:</b> soma dos intervalos "ok" + tempo das paradas aprovadas como justificadas na revisão.</p><p><b>Horas estim.:</b> jornada do operador (padrão 7h).</p><p><b>% Util.:</b> horas trabalhadas ÷ horas estimadas.</p><p><b>Tempo inefic.:</b> horas estimadas − horas trabalhadas (vazio se trabalhou mais que o estimado).</p><p><b>% inefic.:</b> tempo de ineficiência ÷ horas estimadas.</p><p><b>Méd. efetivo:</b> tempo médio por movimentação = soma dos intervalos "ok" ÷ número de intervalos "ok".</p><p><b>Méd. meta:</b> tempo médio meta do operador (padrão 02:52).</p><p><b>% tempo:</b> média meta ÷ média efetiva. Acima de 100% = mais rápido que a meta.</p><p><b>A verificar:</b> paradas acima do limite (inclui a de início e a de fim de turno): amarelo = pendentes de revisão, verde = aprovadas, vermelho = reprovadas. Clique para revisar.</p><p class="dim">As revisões aprovadas aumentam as horas trabalhadas e recalculam % Util., ineficiência e % inefic.</p></div></div></span></div>
             <button id="btn-baixar-excel" class="bg-[var(--accent)] text-black font-semibold text-xs rounded-lg px-2 py-1.5 hover:brightness-110 transition flex items-center gap-1.5">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Baixar Excel
             </button>
           </div>
+          <div class="overflow-x-auto">
           <table class="w-full text-xs whitespace-nowrap">
             <thead class="text-[var(--text-dim)] text-left">
               <tr class="border-b border-[var(--border)]">
@@ -289,6 +291,7 @@
             </thead>
             <tbody id="tabela-dashboard"></tbody>
           </table>
+          </div>
         </div>
       </div>
     </section>
@@ -335,22 +338,23 @@
         </div>
 
         <div class="panel rounded-xl p-4">
-          <p class="text-sm font-semibold mb-3">Efetivo por hora vs meta por hora</p>
+          <div class="relative flex items-center gap-2 mb-3"><p class="text-sm font-semibold">Efetivo por hora vs meta por hora</p><span class="info-dica"><button type="button" class="info-dica-btn" aria-label="Como este gráfico é calculado" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como este gráfico é calculado</p><p class="dim">Só entram as janelas que já começaram. Turno 1: janelas de 1h a partir de 05:20 até 14:20. Turno 2: hora cheia de 15:00 a 00:04. Cada movimentação conta na janela da sua hora.</p><div class="serie" style="color:#3b82f6"><i class="barra"></i><div style="color:var(--text)"><b>Efetivo</b>: movimentações do operador na janela.</div></div><div class="serie" style="color:#ef4444"><i class="trac"></i><div style="color:var(--text)"><b>Meta/hora</b> = meta diária ÷ horas estimadas (por exemplo 147 ÷ 7 = 21 por hora).</div></div></div></div></span></div>
           <div class="chart-box"><canvas id="chart-tr-efetivo" height="220"></canvas></div>
         </div>
 
         <div class="panel rounded-xl p-4">
-          <p class="text-sm font-semibold mb-3">% Produtividade e % Utilização por hora</p>
+          <div class="relative flex items-center gap-2 mb-3"><p class="text-sm font-semibold">% Produtividade e % Utilização por hora</p><span class="info-dica"><button type="button" class="info-dica-btn" aria-label="Como este gráfico é calculado" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como este gráfico é calculado</p><p class="dim">Só entram as janelas que já começaram. Turno 1: janelas de 1h a partir de 05:20 até 14:20. Turno 2: hora cheia de 15:00 a 00:04. Cada movimentação conta na janela da sua hora.</p><div class="serie" style="color:#22c55e"><i></i><div style="color:var(--text)"><b>% Produtividade</b> = efetivo da janela ÷ meta por hora.</div></div><div class="serie" style="color:#f5a623"><i></i><div style="color:var(--text)"><b>% Utilização</b> = tempo trabalhado na janela ÷ 1 hora. Tempo trabalhado = intervalos "ok" da janela + a parte das paradas aprovadas que cai dentro dela.</div></div></div></div></span></div>
           <div class="chart-box"><canvas id="chart-tr-percentuais" height="220"></canvas></div>
         </div>
 
         <div class="panel rounded-xl p-4">
-          <p class="text-sm font-semibold mb-3">Tempo médio por movimentação por hora vs meta</p>
+          <div class="relative flex items-center gap-2 mb-3"><p class="text-sm font-semibold">Tempo médio por movimentação por hora vs meta</p><span class="info-dica"><button type="button" class="info-dica-btn" aria-label="Como este gráfico é calculado" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como este gráfico é calculado</p><p class="dim">Só entram as janelas que já começaram. Turno 1: janelas de 1h a partir de 05:20 até 14:20. Turno 2: hora cheia de 15:00 a 00:04. Cada movimentação conta na janela da sua hora.</p><div class="serie" style="color:#3b82f6"><i></i><div style="color:var(--text)"><b>Tempo médio na hora</b> = soma dos intervalos "ok" da janela ÷ número de intervalos "ok". Janela sem intervalo "ok" fica sem ponto.</div></div><div class="serie" style="color:#ef4444"><i class="trac"></i><div style="color:var(--text)"><b>Meta</b>: tempo médio meta do operador (padrão 02:52).</div></div><p class="dim">Quanto menor, melhor. Paradas "a verificar" não entram na média.</p></div></div></span></div>
           <div class="chart-box"><canvas id="chart-tr-tempo-medio" height="220"></canvas></div>
         </div>
 
-        <div class="panel rounded-xl p-4 overflow-x-auto">
-          <p class="text-sm font-semibold mb-3">Detalhamento por hora</p>
+        <div class="panel rounded-xl p-4">
+          <div class="relative flex items-center gap-2 mb-3"><p class="text-sm font-semibold">Detalhamento por hora</p><span class="info-dica"><button type="button" class="info-dica-btn" aria-label="Como esta tabela é calculada" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como esta tabela é calculada</p><p class="dim">Só entram as janelas que já começaram. Turno 1: janelas de 1h a partir de 05:20 até 14:20. Turno 2: hora cheia de 15:00 a 00:04. Cada movimentação conta na janela da sua hora.</p><p><b>Efetivo:</b> movimentações na janela.</p><p><b>Meta/h:</b> meta diária ÷ horas estimadas.</p><p><b>% Prod.:</b> efetivo ÷ meta/h.</p><p><b>Trabalhado:</b> intervalos "ok" da janela. Quando há parada aprovada, a parte que cai na janela aparece abaixo, como "+ justif.", e já está somada.</p><p><b>% Util.:</b> trabalhado ÷ 1 hora.</p><p><b>Tempo méd.:</b> soma dos intervalos "ok" ÷ número de intervalos "ok" na janela.</p><p><b>A verificar:</b> paradas da janela: amarelo = pendentes, verde = aprovadas, vermelho = reprovadas. Clique para revisar.</p><p class="dim">Os cartões do topo usam o dia inteiro: efetivo total ÷ meta diária, e horas trabalhadas ÷ horas estimadas.</p></div></div></span></div>
+          <div class="overflow-x-auto">
           <table class="w-full text-xs whitespace-nowrap">
             <thead class="text-[var(--text-dim)] text-left border-b border-[var(--border)]">
               <tr>
@@ -367,6 +371,7 @@
             </thead>
             <tbody id="tabela-tr"></tbody>
           </table>
+          </div>
         </div>
       </div>
     </section>
@@ -582,7 +587,7 @@
         </div>
 
         <div class="panel rounded-xl p-5">
-          <p class="text-sm font-semibold mb-3">Por dia</p>
+          <div class="relative flex items-center gap-2 mb-3"><p class="text-sm font-semibold">Por dia</p><span class="info-dica"><button type="button" class="info-dica-btn" aria-label="Como esta tabela é calculada" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como esta tabela é calculada</p><p class="dim">Uma linha por dia com listas concluídas, respeitando os filtros de Turno e Separador. Clique na data para ver o histórico de separação do dia.</p><p><b>Separadores:</b> quem concluiu lista no dia ÷ quadro previsto (fica laranja quando faltou gente). Quem não é separador não conta.</p><p><b>Listas / Volumes:</b> listas concluídas e a soma dos volumes delas.</p><p><b>Meta quadro previsto:</b> pessoas previstas × meta de volumes/hora × jornada, por turno (Configurações).</p><p><b>% (1ª):</b> volumes ÷ meta do quadro previsto.</p><p><b>Meta c/ quem separou:</b> soma, de cada separador que concluiu lista no dia, meta/hora × jornada do turno dele.</p><p><b>% (2ª):</b> volumes ÷ meta com quem separou.</p><p><b>Horas trab.:</b> soma do tempo de execução das listas.</p><p><b>% horas previstas:</b> horas trabalhadas ÷ horas do quadro previsto (pessoas × jornada).</p><p><b>Vol./hora:</b> volumes ÷ horas trabalhadas (só listas com tempo de execução).</p><p><b>% meta vol/h:</b> vol./hora ÷ meta de volumes por hora do turno.</p><p class="dim">Verde = 100% ou mais; laranja = abaixo.</p></div></div></span></div>
           <div class="overflow-x-auto">
             <table class="w-full text-xs">
               <thead class="text-left text-[var(--text-dim)] border-b border-[var(--border)]">
@@ -607,7 +612,7 @@
         </div>
 
         <div class="panel rounded-xl p-5">
-          <p class="text-sm font-semibold mb-3">Por separador</p>
+          <div class="relative flex items-center gap-2 mb-3"><p class="text-sm font-semibold">Por separador</p><span class="info-dica"><button type="button" class="info-dica-btn" aria-label="Como esta tabela é calculada" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como esta tabela é calculada</p><p class="dim">Soma dos dias do período filtrado, uma linha por separador (do turno escolhido). Quem tem "Separador" desmarcado aparece como "não separador" e fica sem %.</p><p><b>Turno:</b> o turno cadastrado em Configurações.</p><p><b>Dias:</b> dias do período em que ele concluiu pelo menos uma lista.</p><p><b>Listas / Volumes:</b> listas concluídas e a soma dos volumes.</p><p><b>Vol./dia:</b> volumes ÷ dias.</p><p><b>% meta dia:</b> vol./dia ÷ meta de um separador do turno (meta/hora × jornada).</p><p><b>Horas trab.:</b> soma do tempo de execução das listas dele.</p><p><b>Vol./hora:</b> volumes ÷ horas trabalhadas.</p><p><b>% meta vol/h:</b> vol./hora ÷ meta de volumes por hora do turno.</p><p class="dim">Ordenado por volumes, do maior para o menor. Verde = 100% ou mais; laranja = abaixo.</p></div></div></span></div>
           <div class="overflow-x-auto">
             <table class="w-full text-xs">
               <thead class="text-left text-[var(--text-dim)] border-b border-[var(--border)]">
@@ -2447,8 +2452,19 @@ function montarApp(){
   document.addEventListener('click', (e) => {
     const btn = e.target.closest('.info-dica-btn');
     document.querySelectorAll('.info-dica.aberta').forEach(el => { if (!btn || el !== btn.parentElement) el.classList.remove('aberta'); });
-    if (btn) btn.parentElement.classList.toggle('aberta');
+    if (btn) { btn.parentElement.classList.toggle('aberta'); ajustarDica(btn.parentElement); }
   });
+  // se a caixa passaria da borda direita da tela (ícone numa coluna da direita), abre alinhada à direita do ícone
+  function ajustarDica(el) {
+    el.classList.remove('dir');
+    const c = el.querySelector('.info-dica-caixa'); if (!c) return;
+    const antes = c.style.display; c.style.display = 'block';
+    const r = c.getBoundingClientRect();
+    c.style.display = antes;
+    if (r.right > innerWidth - 8) el.classList.add('dir');
+  }
+  document.addEventListener('mouseover', (e) => { const el = e.target.closest && e.target.closest('.info-dica'); if (el) ajustarDica(el); });
+  window.addEventListener('resize', () => document.querySelectorAll('.info-dica.dir').forEach(el => el.classList.remove('dir')));
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') document.querySelectorAll('.info-dica.aberta').forEach(el => el.classList.remove('aberta')); });
 
   function trocarAba(nome) {

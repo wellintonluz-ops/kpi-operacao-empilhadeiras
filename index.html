@@ -553,7 +553,7 @@
             <table class="w-full text-xs">
               <thead class="text-left text-[var(--text-dim)] border-b border-[var(--border)]">
                 <tr>
-                  <th class="py-2 pr-3 font-medium">Data</th>
+                  <th class="py-2 pr-3 font-medium" title="Clique na data para ver o histórico de separação do dia">Data</th>
                   <th class="py-2 pr-3 font-medium text-right" title="Separadores que separaram no dia / quadro previsto">Separadores</th>
                   <th class="py-2 pr-3 font-medium text-right">Listas</th>
                   <th class="py-2 pr-3 font-medium text-right">Volumes</th>
@@ -749,6 +749,72 @@
         </thead>
         <tbody id="modal-movimentos-corpo"></tbody>
       </table>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MODAL: EXPEDIÇÃO · HISTÓRICO DE SEPARAÇÃO DO DIA ================= -->
+<div id="modal-exp-dia" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6 bg-black/60">
+  <div class="panel w-full sm:max-w-5xl sm:rounded-2xl rounded-t-2xl max-h-[88vh] flex flex-col">
+    <div class="flex items-start justify-between gap-4 p-5 border-b border-[var(--border)]">
+      <div>
+        <p id="modal-exp-dia-titulo" class="font-semibold"></p>
+        <p id="modal-exp-dia-subtitulo" class="text-xs text-[var(--text-dim)] mt-1"></p>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        <button id="btn-baixar-excel-exp-dia" class="hidden bg-[var(--accent)] text-black font-semibold text-xs rounded-lg px-2 py-1.5 hover:brightness-110 transition flex items-center gap-1.5" title="Baixar o histórico de separação desse dia em Excel">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+          Baixar Excel
+        </button>
+        <button id="btn-fechar-modal-exp-dia" class="text-[var(--text-dim)] hover:text-[var(--text)] text-xl leading-none px-1">&times;</button>
+      </div>
+    </div>
+    <div class="overflow-y-auto p-5">
+      <div id="modal-exp-dia-carregando" class="hidden text-sm text-[var(--text-dim)] py-6 text-center">Carregando as listas do dia…</div>
+      <div id="modal-exp-dia-conteudo" class="space-y-6">
+        <div>
+          <p class="text-sm font-semibold mb-2">Por colaborador <span class="font-normal text-xs text-[var(--text-dim)]">· clique em um nome para ver só as listas dele</span></p>
+          <div class="overflow-x-auto">
+            <table class="w-full text-xs whitespace-nowrap">
+              <thead class="text-[var(--text-dim)] text-left border-b border-[var(--border)]">
+                <tr>
+                  <th class="py-2 pr-3 font-medium">Colaborador</th>
+                  <th class="py-2 pr-3 font-medium">Turno</th>
+                  <th class="py-2 pr-3 font-medium text-right">Listas</th>
+                  <th class="py-2 pr-3 font-medium text-right">Volumes</th>
+                  <th class="py-2 pr-3 font-medium text-right" title="Volumes do dia ÷ meta de um separador (meta/hora × jornada do turno)">% meta dia</th>
+                  <th class="py-2 pr-3 font-medium text-right">Horas trab.</th>
+                  <th class="py-2 pr-3 font-medium text-right">Vol./hora</th>
+                  <th class="py-2 font-medium text-right" title="Volumes por hora ÷ meta de volumes por hora do turno">% meta vol/h</th>
+                </tr>
+              </thead>
+              <tbody id="modal-exp-dia-pessoas"></tbody>
+            </table>
+          </div>
+        </div>
+        <div>
+          <p id="modal-exp-dia-listas-titulo" class="text-sm font-semibold mb-2">Listas do dia</p>
+          <div class="overflow-x-auto">
+            <table class="w-full text-xs whitespace-nowrap">
+              <thead class="text-[var(--text-dim)] text-left border-b border-[var(--border)]">
+                <tr>
+                  <th class="py-2 pr-3 font-medium">Concluída</th>
+                  <th class="py-2 pr-3 font-medium">Criada</th>
+                  <th class="py-2 pr-3 font-medium">Lista</th>
+                  <th class="py-2 pr-3 font-medium">Colaborador</th>
+                  <th class="py-2 pr-3 font-medium">Transportadora</th>
+                  <th class="py-2 pr-3 font-medium text-right">Notas</th>
+                  <th class="py-2 pr-3 font-medium text-right">Volumes</th>
+                  <th class="py-2 pr-3 font-medium text-right">Tempo exec.</th>
+                  <th class="py-2 pr-3 font-medium text-right">Vol./hora</th>
+                  <th class="py-2 font-medium">Status</th>
+                </tr>
+              </thead>
+              <tbody id="modal-exp-dia-listas"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -1842,6 +1908,7 @@ function montarApp(){
         await setDoc(doc(db, 'expedicao_dias', dia), expResumirDia(dia, snap.docs.map(d => d.data())));
       }
       expDashJaBuscou = false; // o Dashboard recarrega com os dados novos
+      expListasDoDiaCache.clear();
       toast(`${expFmtNum(novas.length)} lista(s) nova(s) e ${expFmtNum(alteradas.length)} atualizada(s) salvas`
         + (iguais.length ? ` · ${expFmtNum(iguais.length)} já estavam salvas e não foram gravadas de novo` : '')
         + ` · indicadores de ${dias.length} dia(s) atualizados.`);
@@ -2128,7 +2195,7 @@ function montarApp(){
       const faltou = todosSep && previsto.pessoas && d.separadores < previsto.pessoas;
       return `
       <tr class="border-b border-[var(--border)]/50">
-        <td class="py-1.5 pr-3 font-mono whitespace-nowrap">${formatDataBR(d.data)}${d.data === expHojeISO() ? ' <span class="text-[10px] text-[var(--text-dim)]">(hoje)</span>' : ''}</td>
+        <td class="py-1.5 pr-3 font-mono whitespace-nowrap"><button type="button" data-exp-dia="${d.data}" class="underline decoration-dotted underline-offset-2 hover:text-[var(--accent)] cursor-pointer" title="Ver o histórico de separação desse dia">${formatDataBR(d.data)}</button>${d.data === expHojeISO() ? ' <span class="text-[10px] text-[var(--text-dim)]">(hoje)</span>' : ''}</td>
         <td class="py-1.5 pr-3 font-mono text-right"${faltou ? ' style="color:var(--warn)"' : ''}>${sepTxt}</td>
         <td class="py-1.5 pr-3 font-mono text-right">${expFmtNum(d.listas)}</td>
         <td class="py-1.5 pr-3 font-mono text-right">${expFmtNum(d.volumes)}</td>
@@ -2173,6 +2240,173 @@ function montarApp(){
       </tr>`;
     }).join('');
   }
+
+  // ---------- Histórico de separação do dia (clique na data da tabela "Por dia") ----------
+  let expDiaModal = null; // { data, listas, filtroNome, turno, separador }
+  const expListasDoDiaCache = new Map();
+
+  async function expAbrirHistoricoDia(data) {
+    const turno = $('#exp-dash-turno').value;
+    const separador = $('#exp-dash-separador').value;
+    expDiaModal = { data, listas: [], filtroNome: null, turno, separador };
+    $('#modal-exp-dia-titulo').textContent = `Histórico de separação — ${formatDataBR(data)}`;
+    $('#modal-exp-dia-subtitulo').textContent = '';
+    $('#btn-baixar-excel-exp-dia').classList.add('hidden');
+    $('#modal-exp-dia-conteudo').classList.add('hidden');
+    $('#modal-exp-dia-carregando').classList.remove('hidden');
+    $('#modal-exp-dia').classList.remove('hidden');
+    try {
+      await expGarantirConfig();
+      let listas = expListasDoDiaCache.get(data);
+      if (!listas) {
+        const snap = await getDocs(query(collection(db, 'expedicao_listas'), where('data', '==', data)));
+        listas = snap.docs.map(d => d.data()).filter(Boolean);
+        expListasDoDiaCache.set(data, listas);
+      }
+      // mesmos filtros do Dashboard (turno / separador)
+      expDiaModal.listas = listas.filter(l => separador !== '__todos__' ? l.responsavel === separador
+        : (turno === 'todos' || String(expTurnoDe(l.responsavel)) === turno));
+      expRenderHistoricoDia();
+    } catch (err) {
+      console.error(err);
+      $('#modal-exp-dia').classList.add('hidden');
+      toast('Erro ao carregar o histórico do dia: ' + (err.message || err), 'erro');
+    } finally {
+      $('#modal-exp-dia-carregando').classList.add('hidden');
+    }
+  }
+
+  // resumo por colaborador a partir das listas (só concluídas contam, como no resto do módulo)
+  function expResumoPessoasDia(listas) {
+    const m = {};
+    for (const l of listas) {
+      if (!expConcluida(l)) continue;
+      const p = (m[l.responsavel] ||= { nome: l.responsavel, listas: 0, volumes: 0, volumesComTempo: 0, tempoExecSeg: 0 });
+      p.listas++; p.volumes += l.volumes || 0;
+      if (l.tempoExecSeg > 0) { p.volumesComTempo += l.volumes || 0; p.tempoExecSeg += l.tempoExecSeg; }
+    }
+    return Object.values(m).sort((a, b) => b.volumes - a.volumes || a.nome.localeCompare(b.nome, 'pt-BR'));
+  }
+  // hora da lista; mostra a data junto quando não é do dia aberto (ex.: virada da meia-noite)
+  const expHoraNoDia = (iso, dia) => !iso ? '–' : iso.slice(0, 10) === dia ? iso.slice(11, 16) : expFmtDataHora(iso);
+  const expOrdemLista = (l) => l.concluidaEm || l.criadaEm || '';
+
+  function expRenderHistoricoDia() {
+    const { data, listas, filtroNome } = expDiaModal;
+    const concl = listas.filter(expConcluida);
+    const pessoas = expResumoPessoasDia(listas);
+    const pct = (real, meta) => (meta && real !== null && real !== undefined) ? real / meta * 100 : null;
+    const celPct = (p) => p === null ? '<span class="text-[var(--text-dim)]">–</span>'
+      : `<span style="color:${p >= 100 ? 'var(--ok)' : 'var(--warn)'}">${expFmtNum(p, 1)}%</span>`;
+    const volumes = concl.reduce((a, l) => a + (l.volumes || 0), 0);
+    const naoConc = listas.length - concl.length;
+    $('#modal-exp-dia-subtitulo').textContent = `${expFmtNum(concl.length)} lista${concl.length === 1 ? '' : 's'} concluída${concl.length === 1 ? '' : 's'} · ${expFmtNum(volumes)} volumes · ${pessoas.length} colaborador${pessoas.length === 1 ? '' : 'es'}`
+      + (naoConc ? ` · ${naoConc} não concluída${naoConc === 1 ? '' : 's'} (não contam nos indicadores)` : '')
+      + (expDiaModal.turno !== 'todos' ? ` · Turno ${expDiaModal.turno}` : '');
+    $('#btn-baixar-excel-exp-dia').classList.toggle('hidden', !listas.length);
+    $('#modal-exp-dia-conteudo').classList.remove('hidden');
+
+    $('#modal-exp-dia-pessoas').innerHTML = pessoas.length ? pessoas.map(p => {
+      const eh = expEhSeparador(p.nome);
+      const q = eh ? expQuadroTurno(String(expTurnoDe(p.nome))) : null;
+      const vh = p.tempoExecSeg > 0 ? p.volumesComTempo / (p.tempoExecSeg / 3600) : null;
+      const ativo = filtroNome === p.nome;
+      return `<tr data-exp-dia-pessoa="${expEsc(p.nome)}" class="border-b border-[var(--border)]/50 cursor-pointer hover:bg-black/5"${ativo ? ' style="background:rgba(245,166,35,.12); font-weight:600"' : ''} title="Ver só as listas de ${expEsc(p.nome)}">
+        <td class="py-1.5 pr-3">${expEsc(p.nome)}${eh ? '' : ' <span class="text-[10px] text-[var(--warn)]">(não separador)</span>'}</td>
+        <td class="py-1.5 pr-3">Turno ${expTurnoDe(p.nome)}</td>
+        <td class="py-1.5 pr-3 font-mono text-right">${expFmtNum(p.listas)}</td>
+        <td class="py-1.5 pr-3 font-mono text-right">${expFmtNum(p.volumes)}</td>
+        <td class="py-1.5 pr-3 font-mono text-right">${celPct(q ? pct(p.volumes, q.volDiaPessoa) : null)}</td>
+        <td class="py-1.5 pr-3 font-mono text-right">${expFmtDuracao(p.tempoExecSeg)}</td>
+        <td class="py-1.5 pr-3 font-mono text-right">${vh === null ? '–' : expFmtNum(vh, 1)}</td>
+        <td class="py-1.5 font-mono text-right">${celPct(q ? pct(vh, q.volHora) : null)}</td>
+      </tr>`;
+    }).join('') : '<tr><td colspan="8" class="py-4 text-center text-[var(--text-dim)]">Nenhuma lista concluída nesse dia.</td></tr>';
+
+    const mostradas = listas.filter(l => !filtroNome || l.responsavel === filtroNome)
+      .sort((a, b) => expOrdemLista(a) < expOrdemLista(b) ? -1 : expOrdemLista(a) > expOrdemLista(b) ? 1 : String(a.id).localeCompare(String(b.id), 'pt-BR', { numeric: true }));
+    $('#modal-exp-dia-listas-titulo').innerHTML = filtroNome
+      ? `Listas de ${expEsc(filtroNome)} <button type="button" id="btn-exp-dia-limpar" class="ml-2 text-xs font-normal underline text-[var(--text-dim)] hover:text-[var(--text)]">ver todos</button>`
+      : 'Listas do dia';
+    $('#modal-exp-dia-listas').innerHTML = mostradas.length ? mostradas.map(l => {
+      const ok = expConcluida(l);
+      const vh = ok && l.tempoExecSeg > 0 ? (l.volumes || 0) / (l.tempoExecSeg / 3600) : null;
+      return `<tr class="border-b border-[var(--border)]/50"${ok ? '' : ' style="opacity:.6"'}>
+        <td class="py-1.5 pr-3 font-mono">${expHoraNoDia(l.concluidaEm, data)}</td>
+        <td class="py-1.5 pr-3 font-mono text-[var(--text-dim)]">${expHoraNoDia(l.criadaEm, data)}</td>
+        <td class="py-1.5 pr-3 font-mono">${expEsc(l.id)}</td>
+        <td class="py-1.5 pr-3">${expEsc(l.responsavel)}</td>
+        <td class="py-1.5 pr-3">${expEsc(l.transportadora) || '–'}</td>
+        <td class="py-1.5 pr-3 font-mono text-right">${l.qtdNotas === null || l.qtdNotas === undefined ? '–' : expFmtNum(l.qtdNotas)}</td>
+        <td class="py-1.5 pr-3 font-mono text-right">${expFmtNum(l.volumes)}</td>
+        <td class="py-1.5 pr-3 font-mono text-right">${l.tempoExecSeg > 0 ? expFmtDuracao(l.tempoExecSeg) : '–'}</td>
+        <td class="py-1.5 pr-3 font-mono text-right">${vh === null ? '–' : expFmtNum(vh, 1)}</td>
+        <td class="py-1.5">${ok ? '<span class="badge-ok px-2 py-0.5 rounded-md">Concluída</span>' : `<span class="badge-warn px-2 py-0.5 rounded-md">${expEsc(l.status) || 'Não concluída'}</span>`}</td>
+      </tr>`;
+    }).join('') : '<tr><td colspan="10" class="py-4 text-center text-[var(--text-dim)]">Nenhuma lista nesse dia.</td></tr>';
+  }
+
+  $('#exp-tabela-dias').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-exp-dia]');
+    if (b) expAbrirHistoricoDia(b.dataset.expDia);
+  });
+  $('#modal-exp-dia').addEventListener('click', (e) => {
+    if (e.target.id === 'modal-exp-dia') return $('#modal-exp-dia').classList.add('hidden');
+    if (!expDiaModal) return;
+    if (e.target.closest('#btn-exp-dia-limpar')) { expDiaModal.filtroNome = null; return expRenderHistoricoDia(); }
+    const tr = e.target.closest('[data-exp-dia-pessoa]');
+    if (tr) {
+      const nome = tr.dataset.expDiaPessoa;
+      expDiaModal.filtroNome = expDiaModal.filtroNome === nome ? null : nome;
+      expRenderHistoricoDia();
+    }
+  });
+  $('#btn-fechar-modal-exp-dia').addEventListener('click', () => $('#modal-exp-dia').classList.add('hidden'));
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') $('#modal-exp-dia').classList.add('hidden'); });
+
+  // Excel: uma aba com o resumo por colaborador e outra com todas as listas do dia
+  $('#btn-baixar-excel-exp-dia').addEventListener('click', () => {
+    if (!expDiaModal || !expDiaModal.listas.length) { toast('Esse dia não tem listas pra exportar.', 'erro'); return; }
+    const { data, listas } = expDiaModal;
+    const dataBR = formatDataBR(data);
+    const num = (v, c = 1) => v === null || v === undefined || !isFinite(v) ? '' : Math.round(v * 10 ** c) / 10 ** c;
+    const resumo = expResumoPessoasDia(listas).map(p => {
+      const eh = expEhSeparador(p.nome);
+      const q = eh ? expQuadroTurno(String(expTurnoDe(p.nome))) : null;
+      const vh = p.tempoExecSeg > 0 ? p.volumesComTempo / (p.tempoExecSeg / 3600) : null;
+      return {
+        'Data': dataBR, 'Colaborador': p.nome, 'Turno': expTurnoDe(p.nome), 'É separador': eh ? 'Sim' : 'Não',
+        'Listas': p.listas, 'Volumes': p.volumes,
+        '% meta dia': q && q.volDiaPessoa ? num(p.volumes / q.volDiaPessoa * 100) : '',
+        'Horas trabalhadas': expFmtDuracao(p.tempoExecSeg), 'Vol./hora': num(vh),
+        '% meta vol/h': q && q.volHora && vh !== null ? num(vh / q.volHora * 100) : '',
+      };
+    });
+    const detalhe = [...listas].sort((a, b) => expOrdemLista(a) < expOrdemLista(b) ? -1 : expOrdemLista(a) > expOrdemLista(b) ? 1 : 0).map(l => {
+      const ok = expConcluida(l);
+      return {
+        'Data': dataBR, 'Lista': l.id, 'Colaborador': l.responsavel, 'Turno': expTurnoDe(l.responsavel),
+        'Transportadora': l.transportadora || '', 'Notas': l.qtdNotas ?? '', 'Volumes': l.volumes ?? 0,
+        'Criada em': l.criadaEm ? expFmtDataHora(l.criadaEm) : '', 'Concluída em': l.concluidaEm ? expFmtDataHora(l.concluidaEm) : '',
+        'Tempo de execução': l.tempoExecSeg > 0 ? expFmtDuracao(l.tempoExecSeg) : '',
+        'Vol./hora': ok && l.tempoExecSeg > 0 ? num((l.volumes || 0) / (l.tempoExecSeg / 3600)) : '',
+        'Status': l.status || '',
+      };
+    });
+    try {
+      const wb = XLSX.utils.book_new();
+      for (const [nome, linhas] of [['Por colaborador', resumo], ['Listas', detalhe]]) {
+        if (!linhas.length) continue;
+        const ws = XLSX.utils.json_to_sheet(linhas);
+        ws['!cols'] = Object.keys(linhas[0]).map(k => ({ wch: Math.min(40, Math.max(k.length + 2, ...linhas.map(r => String(r[k] ?? '').length + 1), 8)) }));
+        XLSX.utils.book_append_sheet(wb, ws, nome);
+      }
+      XLSX.writeFile(wb, `separacao_${data}.xlsx`);
+    } catch (e) {
+      console.error(e);
+      toast('Erro ao gerar o Excel: ' + (e.message || e), 'erro');
+    }
+  });
 
   function trocarAba(nome) {
     $$('[data-tab]').forEach(b => b.classList.toggle('active', b.dataset.tab === nome));

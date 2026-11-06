@@ -552,7 +552,7 @@
             <p class="text-[10px] text-[var(--text-dim)] mt-0.5">Volumes ÷ tempo de execução das listas</p>
           </div>
           <div class="panel rounded-xl p-4" style="box-shadow:inset 3px 0 0 var(--accent)">
-            <div class="flex items-center gap-1.5 mb-1"><p class="text-[11px] text-[var(--text-dim)]">Horas trabalhadas por dia</p><span class="info-dica cartao"><button type="button" class="info-dica-btn" aria-label="Como este indicador é calculado" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como este indicador é calculado</p><p class="dim">Só entram listas <b>concluídas</b>, no dia da conclusão (até 00:29 conta no dia anterior). Valem os filtros de Turno, Separador e período; dias sem lista não entram nas médias.</p><p><b>Soma do tempo de execução das listas ÷ dias com lista</b>. É o tempo de cada lista somado, não hora de relógio, e inclui quem não é separador.</p><p><b>Previstas</b>: média de pessoas previstas × jornada. <b>Com quem separou</b>: média da jornada dos separadores que concluíram lista. O % é o total de horas ÷ a soma das referências dos dias.</p><p class="dim">Pode passar de 100% quando alguém que não é separador também separou, ou quando uma pessoa tem listas abertas ao mesmo tempo (os tempos se somam).</p></div></div></span></div>
+            <div class="flex items-center gap-1.5 mb-1"><p class="text-[11px] text-[var(--text-dim)]">Horas trabalhadas por dia</p><span class="info-dica cartao"><button type="button" class="info-dica-btn" aria-label="Como este indicador é calculado" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como este indicador é calculado</p><p class="dim">Só entram listas <b>concluídas</b>, no dia da conclusão (até 00:29 conta no dia anterior). Valem os filtros de Turno, Separador e período; dias sem lista não entram nas médias.</p><p><b>Soma do tempo de execução das listas dos separadores ÷ dias com lista</b>. É o tempo de cada lista somado, não hora de relógio. <b>Só entram as horas de quem está marcado como separador</b> (Configurações); as horas de quem não é separador ficam de fora, e o valor delas aparece na linha de baixo do card.</p><p><b>Previstas</b>: média de pessoas previstas × jornada. <b>Com quem separou</b>: média da jornada dos separadores que concluíram lista. O % é o total de horas ÷ a soma das referências dos dias.</p><p class="dim">Pode passar de 100% quando uma pessoa tem listas abertas ao mesmo tempo (os tempos se somam).</p></div></div></span></div>
             <p id="exp-kpi-horas" class="text-2xl font-bold font-mono">–</p>
             <p id="exp-kpi-horas-meta" class="text-[11px] font-medium mt-1"></p>
             <p id="exp-kpi-horas-meta2" class="text-[11px] font-medium mt-0.5"></p>
@@ -572,6 +572,17 @@
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
           <div class="panel rounded-xl p-5">
+            <div class="relative flex items-center gap-2 mb-3"><p class="text-sm font-semibold">Histórico mensal de separação vs meta</p><span class="info-dica"><button type="button" class="info-dica-btn" aria-label="Como este gráfico é calculado" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como este gráfico é calculado</p><p class="dim">Cada barra é um <b>mês</b> (últimos 12), somando só listas <b>concluídas</b>, no dia da conclusão (até 00:29 conta no dia anterior). Valem os filtros de Turno e Separador, mas <b>não o período</b> De/Até. Meses sem lista não aparecem; o mês atual é parcial.</p><div class="serie" style="color:#3b82f6"><i class="barra"></i><div style="color:var(--text)"><b>Volumes separados</b>: soma dos volumes das listas concluídas do mês.</div></div><div class="serie" style="color:#ef4444"><i class="trac"></i><div style="color:var(--text)"><b>Meta (quadro previsto)</b>: soma, dia a dia, de pessoas previstas × meta de volumes/hora × jornada (por turno). Só os dias com lista entram. Com um separador escolhido, vira "Meta volumes/mês": a meta de uma pessoa do turno dele.</div></div><div class="serie" style="color:#64748b"><i class="trac"></i><div style="color:var(--text)"><b>Meta (com quem separou)</b>: só com "Todos". Soma, dia a dia, de meta/hora × jornada dos separadores que concluíram lista. Quem não é separador conta nos volumes, mas não na meta.</div></div><p class="dim">A meta de cada mês aparece como um traço sobre a barra. Passe o mouse para ver quantos dias com lista o mês teve.</p></div></div></span></div>
+            <div class="chart-box"><canvas id="exp-chart-mes-vol" height="220"></canvas></div>
+          </div>
+          <div class="panel rounded-xl p-5">
+            <div class="relative flex items-center gap-2 mb-3"><p class="text-sm font-semibold">Histórico mensal de volumes por hora vs meta</p><span class="info-dica"><button type="button" class="info-dica-btn" aria-label="Como este gráfico é calculado" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como este gráfico é calculado</p><p class="dim">Cada barra é um <b>mês</b> (últimos 12), somando só listas <b>concluídas</b>, no dia da conclusão (até 00:29 conta no dia anterior). Valem os filtros de Turno e Separador, mas <b>não o período</b> De/Até. Meses sem lista não aparecem; o mês atual é parcial.</p><div class="serie" style="color:#f5a623"><i class="barra"></i><div style="color:var(--text)"><b>Volumes/hora</b> = volumes do mês ÷ soma do tempo de execução das listas do mês, em horas. É o tempo de cada lista somado, não hora de relógio. Lista sem tempo fica fora da conta.</div></div><div class="serie" style="color:#b45309"><i class="trac"></i><div style="color:var(--text)"><b>Meta volumes/hora</b>: meta por hora do turno. Com turnos diferentes, é a média ponderada pelas horas de execução.</div></div><p class="dim">Barra abaixo da linha = rendimento por hora abaixo da meta, independentemente de quantas pessoas trabalharam.</p></div></div></span></div>
+            <div class="chart-box"><canvas id="exp-chart-mes-volhora" height="220"></canvas></div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <div class="panel rounded-xl p-5">
             <div class="relative flex items-center gap-2 mb-3"><p class="text-sm font-semibold">Volumes separados por dia vs meta</p><span class="info-dica"><button type="button" class="info-dica-btn" aria-label="Como este gráfico é calculado" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como este gráfico é calculado</p><p class="dim">Cada ponto é um dia. Só entram listas <b>concluídas</b>, no dia da conclusão (até 00:29 conta no dia anterior). Valem os filtros de Turno e Separador, e dias sem lista não aparecem.</p><div class="serie" style="color:#3b82f6"><i class="barra"></i><div style="color:var(--text)"><b>Volumes separados</b>: soma dos volumes das listas concluídas do dia.</div></div><div class="serie" style="color:#ef4444"><i class="trac"></i><div style="color:var(--text)"><b>Meta (quadro previsto)</b>: pessoas previstas × meta de volumes/hora × jornada, por turno (soma dos dois turnos em "Todos"). Com um separador escolhido, vira "Meta volumes/dia": a meta de uma pessoa do turno dele.</div></div><div class="serie" style="color:#64748b"><i class="trac"></i><div style="color:var(--text)"><b>Meta (com quem separou)</b>: só com "Todos". Soma, de cada separador que concluiu lista no dia, meta/hora × jornada do turno dele. Quem não é separador conta nos volumes, mas não na meta.</div></div><p class="dim">Como ler: barra abaixo da meta do quadro previsto, mas perto da meta de quem separou, indica falta de pessoas.</p></div></div></span></div>
             <div class="chart-box"><canvas id="exp-chart-dias" height="220"></canvas></div>
           </div>
@@ -582,7 +593,7 @@
         </div>
 
         <div class="panel rounded-xl p-5">
-          <div class="relative flex items-center gap-2 mb-3"><p class="text-sm font-semibold">Por dia</p><span class="info-dica"><button type="button" class="info-dica-btn" aria-label="Como esta tabela é calculada" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como esta tabela é calculada</p><p class="dim">Uma linha por dia com listas concluídas, respeitando os filtros de Turno e Separador. Clique na data para ver o histórico de separação do dia.</p><p><b>Separadores:</b> quem concluiu lista no dia ÷ quadro previsto (fica laranja quando faltou gente). Quem não é separador não conta.</p><p><b>Listas / Volumes:</b> listas concluídas e a soma dos volumes delas.</p><p><b>Meta quadro previsto:</b> pessoas previstas × meta de volumes/hora × jornada, por turno (Configurações).</p><p><b>% (1ª):</b> volumes ÷ meta do quadro previsto.</p><p><b>Meta c/ quem separou:</b> soma, de cada separador que concluiu lista no dia, meta/hora × jornada do turno dele.</p><p><b>% (2ª):</b> volumes ÷ meta com quem separou.</p><p><b>Horas trab.:</b> soma do tempo de execução das listas.</p><p><b>% horas previstas:</b> horas trabalhadas ÷ horas do quadro previsto (pessoas × jornada).</p><p><b>Vol./hora:</b> volumes ÷ horas trabalhadas (só listas com tempo de execução).</p><p><b>% meta vol/h:</b> vol./hora ÷ meta de volumes por hora do turno.</p><p class="dim">Verde = 100% ou mais; laranja = abaixo.</p></div></div></span></div>
+          <div class="relative flex items-center gap-2 mb-3"><p class="text-sm font-semibold">Por dia</p><span class="info-dica"><button type="button" class="info-dica-btn" aria-label="Como esta tabela é calculada" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como esta tabela é calculada</p><p class="dim">Uma linha por dia com listas concluídas, respeitando os filtros de Turno e Separador. Clique na data para ver o histórico de separação do dia.</p><p><b>Separadores:</b> quem concluiu lista no dia ÷ quadro previsto (fica laranja quando faltou gente). Quem não é separador não conta.</p><p><b>Listas / Volumes:</b> listas concluídas e a soma dos volumes delas.</p><p><b>Meta quadro previsto:</b> pessoas previstas × meta de volumes/hora × jornada, por turno (Configurações).</p><p><b>% (1ª):</b> volumes ÷ meta do quadro previsto.</p><p><b>Meta c/ quem separou:</b> soma, de cada separador que concluiu lista no dia, meta/hora × jornada do turno dele.</p><p><b>% (2ª):</b> volumes ÷ meta com quem separou.</p><p><b>Horas trab.:</b> soma do tempo de execução das listas <b>dos separadores</b> (quem não é separador fica fora).</p><p><b>% horas previstas:</b> horas dos separadores ÷ horas do quadro previsto (pessoas × jornada).</p><p><b>Vol./hora:</b> volumes ÷ tempo de execução de todas as listas (inclui quem não é separador; só listas com tempo de execução).</p><p><b>% meta vol/h:</b> vol./hora ÷ meta de volumes por hora do turno.</p><p class="dim">Verde = 100% ou mais; laranja = abaixo.</p></div></div></span></div>
           <div class="overflow-x-auto">
             <table class="w-full text-xs">
               <thead class="text-left text-[var(--text-dim)] border-b border-[var(--border)]">
@@ -1457,6 +1468,7 @@ function montarApp(){
   $$('.exp-btn-logout').forEach(b => b.addEventListener('click', () => $('#btn-logout').click()));
   $('#exp-btn-buscar').addEventListener('click', () => expBuscarDashboard());
   let expDashJaBuscou = false;
+  let expHistMensalDias = null; // dias dos últimos 12 meses (histórico mensal); recarrega após importar
   let expPrecisaRerender = false;
   let expEqBuscou = false;
   let expEqPrecisaRerender = false;
@@ -2022,6 +2034,7 @@ function montarApp(){
         await setDoc(doc(db, 'expedicao_dias', dia), expResumirDia(dia, snap.docs.map(d => d.data())));
       }
       expDashJaBuscou = false; // o Dashboard recarrega com os dados novos
+      expHistMensalDias = null;
       expEqBuscou = false;
       expListasDoDiaCache.clear();
       toast(`${expFmtNum(novas.length)} lista(s) nova(s) e ${expFmtNum(alteradas.length)} atualizada(s) salvas`
@@ -2094,6 +2107,7 @@ function montarApp(){
       const dias = snap.docs.map(d => d.data()).filter(d => d && d.data && d.data >= inicio && d.data <= fim)
         .sort((a, b) => (a.data < b.data ? -1 : a.data > b.data ? 1 : 0));
       expUltimaBusca = { inicio, fim, dias };
+      if (!expHistMensalDias) expHistMensalDias = await expCarregarHistMensal();
       expPrecisaRerender = false;
       expPopularSeparadores();
       expRenderDashboard();
@@ -2104,6 +2118,16 @@ function montarApp(){
       expCarregando = false;
       $('#exp-dash-carregando').classList.add('hidden');
     }
+  }
+  // últimos 12 meses (do 1º dia do mês de 11 meses atrás até o fim do mês atual), pro histórico mensal
+  async function expCarregarHistMensal() {
+    try {
+      const hoje = expHojeISO(); let [a, m] = hoje.split('-').map(Number);
+      m -= 11; while (m < 1) { m += 12; a--; }
+      const ini = `${a}-${String(m).padStart(2, '0')}-01`, fimMes = `${hoje.slice(0, 7)}-31`;
+      const snap = await getDocs(query(collection(db, 'expedicao_dias'), where('data', '>=', ini), where('data', '<=', fimMes)));
+      return snap.docs.map(d => d.data()).filter(d => d && d.data && d.data >= ini && d.data <= fimMes);
+    } catch (err) { console.error(err); return null; } // sem histórico, o resto do dashboard continua
   }
   // trocar turno ou separador só refiltra o que já foi buscado
   $('#exp-dash-separador').addEventListener('change', () => { if (expUltimaBusca) expRenderDashboard(); });
@@ -2141,16 +2165,17 @@ function montarApp(){
 
     const pessoasDoDia = (d) => Object.entries(d.porResponsavel || {}).filter(([nm, r]) => r && r.listas > 0
       && (todosSep ? (turno === 'todos' || String(expTurnoDe(nm)) === turno) : nm === separador));
-    const dias = diasPeriodo.map(d => {
+    const montarDia = (d) => {
       const pessoas = pessoasDoDia(d);
       if (!pessoas.length) return null;
       const dia = { data: d.data, listas: 0, volumes: 0, volumesComTempo: 0, tempoExecSeg: 0, separadores: 0,
-        metaAjustVolDia: null, metaAjustHorasSeg: null, metaVolHoraPeso: 0, metaVolHoraTempo: 0 };
+        metaAjustVolDia: null, metaAjustHorasSeg: null, metaVolHoraPeso: 0, metaVolHoraTempo: 0, tempoSepSeg: 0 };
       for (const [nm, r] of pessoas) {
         dia.listas += r.listas || 0; dia.volumes += r.volumes || 0;
         dia.volumesComTempo += r.volumesComTempo || 0; dia.tempoExecSeg += r.tempoExecSeg || 0;
         if (!expEhSeparador(nm)) continue; // soma volumes/horas, mas não conta no quadro nem na meta
         dia.separadores++;
+        dia.tempoSepSeg += r.tempoExecSeg || 0; // horas só de separadores (card e tabela de horas)
         const q = expQuadroTurno(String(expTurnoDe(nm)));
         if (q.volDiaPessoa) dia.metaAjustVolDia = (dia.metaAjustVolDia || 0) + q.volDiaPessoa;
         if (q.jornadaSeg) dia.metaAjustHorasSeg = (dia.metaAjustHorasSeg || 0) + q.jornadaSeg;
@@ -2168,7 +2193,8 @@ function montarApp(){
         dia.metaAjustVolDia = null; dia.metaAjustHorasSeg = null;
       }
       return dia;
-    }).filter(Boolean);
+    };
+    const dias = diasPeriodo.map(montarDia).filter(Boolean);
 
     const pct = (real, meta) => (meta && real !== null && real !== undefined) ? real / meta * 100 : null;
     const corPct = (p) => p === null ? 'var(--text-dim)' : p >= 100 ? 'var(--ok)' : 'var(--warn)';
@@ -2197,7 +2223,9 @@ function montarApp(){
     const listas = soma(dias, 'listas');
     const volHora = tempoSeg > 0 ? volumesComTempo / (tempoSeg / 3600) : null;
     const volDia = volumes / nDias;
-    const horasDiaSeg = tempoSeg / nDias;
+    const horasSepSeg = soma(dias, 'tempoSepSeg');      // só quem é separador
+    const horasNaoSepSeg = tempoSeg - horasSepSeg;       // não separadores: ficam fora do card de horas
+    const horasDiaSeg = horasSepSeg / nDias;
     const temHoje = dias.some(d => d.data === expHojeISO());
     const mediaSeparadores = soma(dias, 'separadores') / nDias;
 
@@ -2210,8 +2238,8 @@ function montarApp(){
     };
     const prevVol = pctPeriodo('volumes', 'metaPrevVolDia');
     const ajustVol = pctPeriodo('volumes', 'metaAjustVolDia');
-    const prevHoras = pctPeriodo('tempoExecSeg', 'metaPrevHorasSeg');
-    const ajustHoras = pctPeriodo('tempoExecSeg', 'metaAjustHorasSeg');
+    const prevHoras = pctPeriodo('tempoSepSeg', 'metaPrevHorasSeg');
+    const ajustHoras = pctPeriodo('tempoSepSeg', 'metaAjustHorasSeg');
     const pesoVH = soma(dias, 'metaVolHoraPeso'), tempoVH = soma(dias, 'metaVolHoraTempo');
     const metaVolHora = todosSep ? (tempoVH > 0 ? pesoVH / tempoVH : previsto.volHora) : (qPessoa ? qPessoa.volHora : null);
 
@@ -2259,11 +2287,13 @@ function montarApp(){
     $('#exp-kpi-voldia-meta2').innerHTML = todosSep && ajustVol.meta !== null
       ? metaHtml('Com quem separou', expFmtNum(ajustVol.meta), ajustVol.pct) : '';
     $('#exp-kpi-voldia-sub').textContent = `${expFmtNum(volumes)} volumes ÷ ${nDias} dia(s)` + (temHoje ? ' · inclui hoje (parcial)' : '');
-    $('#exp-kpi-horas').textContent = expFmtDuracao(horasDiaSeg);
+    $('#exp-kpi-horas').textContent = naoSepEscolhido ? '–' : expFmtDuracao(horasDiaSeg);
     $('#exp-kpi-horas-meta').innerHTML = metaHtml(todosSep ? 'Previstas' : 'Jornada', prevHoras.meta === null ? null : expFmtDuracao(prevHoras.meta), prevHoras.pct);
     $('#exp-kpi-horas-meta2').innerHTML = todosSep && ajustHoras.meta !== null
       ? metaHtml('Com quem separou', expFmtDuracao(ajustHoras.meta), ajustHoras.pct) : '';
-    $('#exp-kpi-horas-sub').textContent = `${expFmtDuracao(tempoSeg)} no período ÷ ${nDias} dia(s) · soma do tempo das listas`;
+    $('#exp-kpi-horas-sub').textContent = naoSepEscolhido ? 'Horas de quem não é separador não entram neste card'
+      : `${expFmtDuracao(horasSepSeg)} no período ÷ ${nDias} dia(s) · só horas de separadores`
+        + (todosSep && horasNaoSepSeg > 0 ? ` · ${expFmtDuracao(horasNaoSepSeg)} de não separadores ficam fora` : '');
     $('#exp-kpi-volumes').textContent = expFmtNum(volumes);
     $('#exp-kpi-volumes-sub').textContent = `Tempo de execução: ${expFmtDuracao(tempoSeg)}`;
     $('#exp-kpi-listas').textContent = expFmtNum(listas);
@@ -2285,6 +2315,62 @@ function montarApp(){
       pointStyle: 'line', pointRadius: dias.length === 1 ? 36 : 0, pointBorderWidth: 2, pointHoverRadius: 0,
       fill: false, tension: 0, spanGaps: false, order: -1,
     });
+    // ---- histórico mensal (últimos 12 meses; vale turno/separador, não o período) ----
+    const MESES_ABREV = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+    const porMes = {};
+    for (const d of (expHistMensalDias || [])) { const dm = montarDia(d); if (dm) (porMes[d.data.slice(0, 7)] ||= []).push(dm); }
+    const meses = Object.keys(porMes).sort().map(k => {
+      const ds = porMes[k];
+      const vol = soma(ds, 'volumes'), vct = soma(ds, 'volumesComTempo'), tseg = soma(ds, 'tempoExecSeg');
+      const comVH = ds.filter(d => d.metaVolHora && d.tempoExecSeg > 0);
+      const tVH = soma(comVH, 'tempoExecSeg');
+      return {
+        rotulo: `${MESES_ABREV[Number(k.slice(5)) - 1]}/${k.slice(2, 4)}`, dias: ds.length, parcial: k === expHojeISO().slice(0, 7),
+        volumes: vol,
+        vh: tseg > 0 ? vct / (tseg / 3600) : null,
+        metaPrev: ds.some(d => d.metaPrevVolDia) ? soma(ds, 'metaPrevVolDia') : null,
+        metaAjust: ds.some(d => d.metaAjustVolDia) ? soma(ds, 'metaAjustVolDia') : null,
+        metaVH: tVH > 0 ? comVH.reduce((a, d) => a + d.metaVolHora * d.tempoExecSeg, 0) / tVH : null,
+      };
+    });
+    const opMes = (tituloEixo, casas) => {
+      const o = opcoes(tituloEixo, casas);
+      o.plugins.tooltip.callbacks.footer = (it) => { const m = meses[it[0].dataIndex]; return m ? `${m.dias} dia(s) com listas${m.parcial ? ' · mês em andamento' : ''}` : ''; };
+      return o;
+    };
+    const rotMes = meses.map(m => m.rotulo + (m.parcial ? '*' : ''));
+    // meta do mês = um traço sobre a barra (cada mês tem a sua; ligar os meses com linha enganaria)
+    const tracoMes = (label, data, cor) => ({
+      type: 'line', label, data, yAxisID: 'y', showLine: false, borderColor: cor, backgroundColor: cor, pointStyle: 'line', pointBorderColor: cor, pointBorderWidth: 3,
+      pointRadius: (c) => { const m = c.chart.getDatasetMeta(0).data[c.dataIndex]; return m ? Math.min(34, Math.max(8, m.width / 2 + 4)) : 18; },
+      pointHoverRadius: 0, order: -1,
+    });
+    desenharGrafico('exp-chart-mes-vol', {
+      type: 'bar',
+      data: {
+        labels: rotMes,
+        datasets: [
+          { type: 'bar', label: 'Volumes separados', data: meses.map(m => m.volumes), yAxisID: 'y', backgroundColor: '#3b82f6', borderRadius: 4, maxBarThickness: 56, order: 1 },
+          ...(meses.some(m => m.metaPrev) ? [tracoMes(todosSep ? 'Meta (quadro previsto)' : 'Meta volumes/mês', meses.map(m => arred(m.metaPrev)), '#ef4444')] : []),
+          ...(todosSep && meses.some(m => m.metaAjust) ? [tracoMes('Meta (com quem separou)', meses.map(m => arred(m.metaAjust)), '#64748b')] : []),
+        ],
+      },
+      options: opMes('Volumes no mês', 0),
+      plugins: [expRotulosVolumes],
+    });
+    desenharGrafico('exp-chart-mes-volhora', {
+      type: 'bar',
+      data: {
+        labels: rotMes,
+        datasets: [
+          { type: 'bar', label: 'Volumes/hora', data: meses.map(m => arred(m.vh)), yAxisID: 'y', backgroundColor: '#f5a623', borderRadius: 4, maxBarThickness: 56, order: 1, rotuloCasas: 1 },
+          ...(meses.some(m => m.metaVH) ? [tracoMes('Meta volumes/hora', meses.map(m => arred(m.metaVH)), '#b45309')] : []),
+        ],
+      },
+      options: opMes('Volumes por hora', 1),
+      plugins: [expRotulosVolumes],
+    });
+
     // gráfico 1: volumes por dia e as metas de volume
     desenharGrafico('exp-chart-dias', {
       type: 'bar',
@@ -2328,8 +2414,8 @@ function montarApp(){
         <td class="py-1.5 pr-3 font-mono text-right">${celPct(pct(d.volumes, d.metaPrevVolDia))}</td>
         <td class="py-1.5 pr-3 font-mono text-right">${d.metaAjustVolDia ? expFmtNum(d.metaAjustVolDia) : '–'}</td>
         <td class="py-1.5 pr-3 font-mono text-right">${celPct(pct(d.volumes, d.metaAjustVolDia))}</td>
-        <td class="py-1.5 pr-3 font-mono text-right">${expFmtDuracao(d.tempoExecSeg)}</td>
-        <td class="py-1.5 pr-3 font-mono text-right">${celPct(pct(d.tempoExecSeg, d.metaPrevHorasSeg))}</td>
+        <td class="py-1.5 pr-3 font-mono text-right">${naoSepEscolhido ? '–' : expFmtDuracao(d.tempoSepSeg)}</td>
+        <td class="py-1.5 pr-3 font-mono text-right">${celPct(pct(d.tempoSepSeg, d.metaPrevHorasSeg))}</td>
         <td class="py-1.5 pr-3 font-mono text-right">${vh === null ? '–' : expFmtNum(vh, 1)}</td>
         <td class="py-1.5 font-mono text-right">${celPct(pct(vh, d.metaVolHora))}</td>
       </tr>`;

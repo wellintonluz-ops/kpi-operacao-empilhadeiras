@@ -587,7 +587,7 @@
             <div class="chart-box"><canvas id="exp-chart-dias" height="220"></canvas></div>
           </div>
           <div class="panel rounded-xl p-5">
-            <div class="relative flex items-center gap-2 mb-3"><p class="text-sm font-semibold">Volumes por hora vs meta</p><span class="info-dica"><button type="button" class="info-dica-btn" aria-label="Como este gráfico é calculado" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como este gráfico é calculado</p><p class="dim">Cada ponto é um dia. Só entram listas <b>concluídas</b>, no dia da conclusão (até 00:29 conta no dia anterior). Valem os filtros de Turno e Separador, e dias sem lista não aparecem.</p><div class="serie" style="color:#f5a623"><i class="barra"></i><div style="color:var(--text)"><b>Volumes/hora</b> = volumes ÷ soma do tempo de execução das listas, em horas. É o tempo de cada lista somado, não hora de relógio. Lista sem tempo fica fora da conta.</div></div><div class="serie" style="color:#b45309"><i class="trac"></i><div style="color:var(--text)"><b>Meta volumes/hora</b>: meta por hora do turno. Com turnos diferentes, é a média ponderada pelas horas de execução de cada separador.</div></div><p class="dim">Como ler: barra abaixo da linha significa rendimento por hora abaixo da meta, independentemente de quantas pessoas trabalharam.</p></div></div></span></div>
+            <div class="relative flex items-center gap-2 mb-3"><p class="text-sm font-semibold">Volumes por hora vs meta</p><span class="info-dica"><button type="button" class="info-dica-btn" aria-label="Como este gráfico é calculado" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como este gráfico é calculado</p><p class="dim">Cada ponto é um dia. Só entram listas <b>concluídas</b>, no dia da conclusão (até 00:29 conta no dia anterior). Valem os filtros de Turno e Separador, e dias sem lista não aparecem.</p><div class="serie" style="color:#f5a623"><i></i><div style="color:var(--text)"><b>Volumes/hora</b> (linha contínua com pontos) = volumes ÷ soma do tempo de execução das listas, em horas. É o tempo de cada lista somado, não hora de relógio. Lista sem tempo fica fora da conta.</div></div><div class="serie" style="color:#b45309"><i class="trac"></i><div style="color:var(--text)"><b>Meta volumes/hora</b>: meta por hora do turno. Com turnos diferentes, é a média ponderada pelas horas de execução de cada separador.</div></div><p class="dim">Como ler: ponto abaixo da linha tracejada significa rendimento por hora abaixo da meta, independentemente de quantas pessoas trabalharam.</p></div></div></span></div>
             <div class="chart-box"><canvas id="exp-chart-volhora" height="220"></canvas></div>
           </div>
         </div>
@@ -2061,7 +2061,22 @@ function montarApp(){
     afterDatasetsDraw(chart) {
       const { ctx } = chart;
       chart.data.datasets.forEach((dataset, di) => {
-        if (dataset.type === 'line') return;
+        if (dataset.type === 'line') {
+          // linha com valores nos pontos (só quando há espaço entre eles; senão, vale o mouse)
+          if (!dataset.rotuloPontos) return;
+          const pts = chart.getDatasetMeta(di).data.filter((pt, i) => dataset.data[i] !== null && dataset.data[i] !== undefined);
+          let folga = Infinity;
+          for (let k = 1; k < pts.length; k++) folga = Math.min(folga, pts[k].x - pts[k - 1].x);
+          if (folga < 34) return;
+          pts.forEach((pt, k) => {
+            const valor = chart.getDatasetMeta(di).data.indexOf(pt);
+            ctx.save();
+            ctx.fillStyle = '#1f2430'; ctx.font = '600 10px Inter, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+            ctx.fillText(expFmtNum(dataset.data[valor], dataset.rotuloCasas || 0), pt.x, pt.y - 7);
+            ctx.restore();
+          });
+          return;
+        }
         chart.getDatasetMeta(di).data.forEach((bar, i) => {
           const valor = dataset.data[i];
           if (valor === null || valor === undefined) return;
@@ -2387,15 +2402,16 @@ function montarApp(){
     });
     // gráfico 2: volumes por hora e a meta por hora
     desenharGrafico('exp-chart-volhora', {
-      type: 'bar',
+      type: 'line',
       data: {
         labels,
         datasets: [
-          { type: 'bar', label: 'Volumes/hora', data: volHoraDia, yAxisID: 'y', backgroundColor: '#f5a623', borderRadius: 4, maxBarThickness: 56, order: 1, rotuloCasas: 1 },
+          { type: 'line', label: 'Volumes/hora', data: volHoraDia, yAxisID: 'y', borderColor: '#f5a623', backgroundColor: '#f5a623', borderWidth: 2.5,
+            pointRadius: dias.length > 20 ? 3 : 4, pointHoverRadius: 6, pointBackgroundColor: '#f5a623', tension: 0, fill: false, spanGaps: true, order: 1, rotuloCasas: 1, rotuloPontos: true },
           ...(dias.some(d => d.metaVolHora) ? [linhaMeta('Meta volumes/hora', dias.map(d => arred(d.metaVolHora)), '#b45309', [2, 4])] : []),
         ],
       },
-      options: opcoes('Volumes por hora', 1),
+      options: Object.assign(opcoes('Volumes por hora', 1), { interaction: { mode: 'index', intersect: false } }),
       plugins: [expRotulosVolumes],
     });
 

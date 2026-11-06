@@ -470,7 +470,8 @@
         </div>
       </div>
       <nav class="hidden md:flex items-center gap-1 text-sm font-medium">
-        <button data-tab-exp="dashboard" class="tab-btn px-3 py-2">Dashboard</button>
+        <button data-tab-exp="dashboard" class="tab-btn px-3 py-2">Dashboard operação</button>
+        <button data-tab-exp="equipe" class="tab-btn px-3 py-2">Dashboard Equipe</button>
         <button data-tab-exp="importar" class="tab-btn px-3 py-2">Importar</button>
         <button data-tab-exp="config" class="tab-btn px-3 py-2">Configurações</button>
       </nav>
@@ -480,7 +481,8 @@
       </div>
     </div>
     <nav class="md:hidden flex items-center gap-1 text-xs font-medium px-3 pb-2 overflow-x-auto">
-      <button data-tab-exp="dashboard" class="tab-btn px-3 py-2 whitespace-nowrap">Dashboard</button>
+      <button data-tab-exp="dashboard" class="tab-btn px-3 py-2 whitespace-nowrap">Dashboard operação</button>
+      <button data-tab-exp="equipe" class="tab-btn px-3 py-2 whitespace-nowrap">Dashboard Equipe</button>
       <button data-tab-exp="importar" class="tab-btn px-3 py-2 whitespace-nowrap">Importar</button>
       <button data-tab-exp="config" class="tab-btn px-3 py-2 whitespace-nowrap">Configurações</button>
     </nav>
@@ -629,13 +631,84 @@
       </div>
     </section>
 
+    <!-- ============ EXPEDIÇÃO · DASHBOARD EQUIPE ============ -->
+    <section id="exp-painel-equipe" class="exp-panel space-y-5 hidden">
+      <div class="flex flex-wrap items-end gap-3 panel rounded-xl p-4">
+        <div>
+          <label class="block text-xs text-[var(--text-dim)] mb-1">Turno</label>
+          <select id="exp-eq-turno" class="rounded-lg px-3 py-2 text-sm">
+            <option value="todos">Todos os turnos</option>
+            <option value="1">Turno 1 (05:20–14:20)</option>
+            <option value="2">Turno 2 (15:00–00:04)</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs text-[var(--text-dim)] mb-1">De</label>
+          <input type="date" id="exp-eq-inicio" class="rounded-lg px-3 py-2 text-sm">
+        </div>
+        <div>
+          <label class="block text-xs text-[var(--text-dim)] mb-1">Até</label>
+          <input type="date" id="exp-eq-fim" class="rounded-lg px-3 py-2 text-sm">
+        </div>
+        <button id="exp-eq-buscar" class="bg-[var(--accent)] text-black font-semibold text-sm rounded-lg px-4 py-2 hover:brightness-110 transition">Buscar</button>
+        <div id="exp-eq-carregando" class="hidden spinner"></div>
+        <p class="text-xs text-[var(--text-dim)] ml-auto">Compara os colaboradores entre si. Abre no mês atual. Só listas concluídas entram.</p>
+      </div>
+
+      <div id="exp-eq-vazio" class="hidden panel rounded-xl p-8 text-center text-sm text-[var(--text-dim)]">
+        <span id="exp-eq-vazio-texto">Nenhuma lista de separação concluída no período.</span>
+        Para trazer dados, use a aba <button type="button" data-ir-tab-exp="importar" class="font-semibold text-[var(--text)] underline">Importar</button>.
+      </div>
+
+      <div id="exp-eq-conteudo" class="hidden space-y-5 fade-in">
+        <div>
+          <h2 id="exp-eq-titulo" class="font-semibold"></h2>
+          <p id="exp-eq-sub" class="text-xs text-[var(--text-dim)] mt-0.5"></p>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
+          <div class="panel rounded-xl p-4" style="box-shadow:inset 3px 0 0 var(--accent)"><div class="flex items-center gap-1.5 mb-1"><p class="text-[11px] text-[var(--text-dim)]">Colaboradores que separaram</p><span class="info-dica cartao"><button type="button" class="info-dica-btn" aria-label="Como este indicador é calculado" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como este indicador é calculado</p><p class="dim">Só entram listas <b>concluídas</b>, no dia da conclusão (até 00:29 conta no dia anterior). Valem o Turno e o período escolhidos nesta aba; dias sem lista não aparecem.</p><p>Quantidade de pessoas com pelo menos uma lista concluída no período. Quem tem "Separador" marcado em Configurações é separador; quem não tem conta aqui nos volumes, mas não tem meta.</p></div></div></span></div><p id="exp-eq-k-pessoas" class="text-2xl font-bold font-mono">–</p><p id="exp-eq-k-pessoas-sub" class="text-[10px] text-[var(--text-dim)] mt-1"></p></div>
+          <div class="panel rounded-xl p-4" style="box-shadow:inset 3px 0 0 var(--accent)"><div class="flex items-center gap-1.5 mb-1"><p class="text-[11px] text-[var(--text-dim)]">Volumes da equipe</p><span class="info-dica cartao"><button type="button" class="info-dica-btn" aria-label="Como este indicador é calculado" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como este indicador é calculado</p><p class="dim">Só entram listas <b>concluídas</b>, no dia da conclusão (até 00:29 conta no dia anterior). Valem o Turno e o período escolhidos nesta aba; dias sem lista não aparecem.</p><p>Soma dos volumes das listas concluídas de todos os colaboradores do filtro.</p></div></div></span></div><p id="exp-eq-k-volumes" class="text-2xl font-bold font-mono">–</p><p id="exp-eq-k-volumes-sub" class="text-[10px] text-[var(--text-dim)] mt-1"></p></div>
+          <div class="panel rounded-xl p-4" style="box-shadow:inset 3px 0 0 var(--accent)"><div class="flex items-center gap-1.5 mb-1"><p class="text-[11px] text-[var(--text-dim)]">Volumes por hora da equipe</p><span class="info-dica cartao"><button type="button" class="info-dica-btn" aria-label="Como este indicador é calculado" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como este indicador é calculado</p><p class="dim">Só entram listas <b>concluídas</b>, no dia da conclusão (até 00:29 conta no dia anterior). Valem o Turno e o período escolhidos nesta aba; dias sem lista não aparecem.</p><p><b>Volumes ÷ tempo de execução somado</b> das listas, em horas, de toda a equipe. Só entram listas com tempo de execução.</p></div></div></span></div><p id="exp-eq-k-volhora" class="text-2xl font-bold font-mono">–</p><p id="exp-eq-k-volhora-sub" class="text-[10px] text-[var(--text-dim)] mt-1"></p></div>
+          <div class="panel rounded-xl p-4" style="box-shadow:inset 3px 0 0 var(--accent)"><div class="flex items-center gap-1.5 mb-1"><p class="text-[11px] text-[var(--text-dim)]">Maior volume no período</p><span class="info-dica cartao"><button type="button" class="info-dica-btn" aria-label="Como este indicador é calculado" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como este indicador é calculado</p><p class="dim">Só entram listas <b>concluídas</b>, no dia da conclusão (até 00:29 conta no dia anterior). Valem o Turno e o período escolhidos nesta aba; dias sem lista não aparecem.</p><p>Colaborador com mais volumes somados. Quem trabalhou mais dias tende a somar mais: para comparar o ritmo, veja os volumes por hora.</p></div></div></span></div><p id="exp-eq-k-maior" class="text-2xl font-bold font-mono">–</p><p id="exp-eq-k-maior-sub" class="text-[10px] text-[var(--text-dim)] mt-1"></p></div>
+          <div class="panel rounded-xl p-4" style="box-shadow:inset 3px 0 0 var(--accent)"><div class="flex items-center gap-1.5 mb-1"><p class="text-[11px] text-[var(--text-dim)]">Melhor volumes/hora</p><span class="info-dica cartao"><button type="button" class="info-dica-btn" aria-label="Como este indicador é calculado" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como este indicador é calculado</p><p class="dim">Só entram listas <b>concluídas</b>, no dia da conclusão (até 00:29 conta no dia anterior). Valem o Turno e o período escolhidos nesta aba; dias sem lista não aparecem.</p><p>Colaborador com o maior <b>volumes ÷ tempo de execução</b> dele no período. Quem separou pouco pode aparecer bem por ter poucas listas: confira a quantidade na tabela abaixo.</p></div></div></span></div><p id="exp-eq-k-melhor" class="text-2xl font-bold font-mono">–</p><p id="exp-eq-k-melhor-sub" class="text-[10px] text-[var(--text-dim)] mt-1"></p></div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <div class="panel rounded-xl p-5">
+            <div class="relative flex items-center gap-2 mb-3"><p class="text-sm font-semibold">Volumes por colaborador vs meta</p><span class="info-dica"><button type="button" class="info-dica-btn" aria-label="Como este gráfico é calculado" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como este gráfico é calculado</p><p class="dim">Só entram listas <b>concluídas</b>, no dia da conclusão (até 00:29 conta no dia anterior). Valem o Turno e o período escolhidos nesta aba; dias sem lista não aparecem.</p><div class="serie" style="color:#3b82f6"><i class="barra"></i><div style="color:var(--text)"><b>Volumes</b>: soma dos volumes das listas concluídas dele no período.</div></div><div class="serie" style="color:#ef4444"><i class="trac"></i><div style="color:var(--text)"><b>Meta do período</b>: meta de volumes/dia de um separador do turno dele (meta/hora × jornada) × os dias em que ele separou. Quem não é separador fica sem meta.</div></div></div></div></span></div>
+            <div class="chart-box"><canvas id="exp-eq-chart-vol" height="220"></canvas></div>
+          </div>
+          <div class="panel rounded-xl p-5">
+            <div class="relative flex items-center gap-2 mb-3"><p class="text-sm font-semibold">Volumes por hora por colaborador vs meta</p><span class="info-dica"><button type="button" class="info-dica-btn" aria-label="Como este gráfico é calculado" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como este gráfico é calculado</p><p class="dim">Só entram listas <b>concluídas</b>, no dia da conclusão (até 00:29 conta no dia anterior). Valem o Turno e o período escolhidos nesta aba; dias sem lista não aparecem.</p><div class="serie" style="color:#f5a623"><i class="barra"></i><div style="color:var(--text)"><b>Volumes/hora</b> = volumes dele ÷ soma do tempo de execução das listas dele, em horas.</div></div><div class="serie" style="color:#b45309"><i class="trac"></i><div style="color:var(--text)"><b>Meta volumes/hora</b>: a meta por hora do turno dele (Configurações). Quem não é separador fica sem meta.</div></div></div></div></span></div>
+            <div class="chart-box"><canvas id="exp-eq-chart-volhora" height="220"></canvas></div>
+          </div>
+        </div>
+
+        <div class="panel rounded-xl p-5">
+          <div class="relative flex items-center gap-2 mb-3"><p class="text-sm font-semibold">Volumes por dia, por colaborador</p><span class="info-dica"><button type="button" class="info-dica-btn" aria-label="Como este gráfico é calculado" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como este gráfico é calculado</p><p class="dim">Só entram listas <b>concluídas</b>, no dia da conclusão (até 00:29 conta no dia anterior). Valem o Turno e o período escolhidos nesta aba; dias sem lista não aparecem.</p><p>Cada barra é um dia e cada cor é um colaborador. A altura de cada parte é o volume que ele separou naquele dia; a barra inteira é o volume total do dia, que aparece também ao passar o mouse.</p></div></div></span></div>
+          <div class="chart-box"><canvas id="exp-eq-chart-dia" height="220"></canvas></div>
+        </div>
+
+        <div class="panel rounded-xl p-5">
+          <div class="relative flex items-center gap-2 mb-3"><p class="text-sm font-semibold">Volumes por colaborador e dia</p><span class="info-dica"><button type="button" class="info-dica-btn" aria-label="Como esta tabela é calculada" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como esta tabela é calculada</p><p class="dim">Só entram listas <b>concluídas</b>, no dia da conclusão (até 00:29 conta no dia anterior). Valem o Turno e o período escolhidos nesta aba; dias sem lista não aparecem.</p><p>Uma linha por colaborador (do que mais separou para o que menos separou) e uma coluna por dia. Cada célula é o volume dele naquele dia; "–" é dia sem lista concluída.</p><p><b>Total</b>: soma dos volumes do período. A última linha é o total de cada dia.</p><p class="dim">Clique na data para abrir o histórico de separação daquele dia.</p></div></div></span></div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-xs whitespace-nowrap">
+              <thead id="exp-eq-matriz-cab" class="text-[var(--text-dim)] text-left border-b border-[var(--border)]"></thead>
+              <tbody id="exp-eq-matriz"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- ============ EXPEDIÇÃO · CONFIGURAÇÕES ============ -->
     <section id="exp-painel-config" class="exp-panel space-y-5 hidden">
       <div class="panel rounded-xl p-5">
         <h2 class="font-semibold mb-1">Quadro de separação previsto (base das metas)</h2>
         <p class="text-sm text-[var(--text-dim)] mb-4">
           A meta é do <b>quadro previsto</b> — quantos separadores o turno deveria ter, mesmo com vagas ainda em aberto.
-          O Dashboard mostra lado a lado a meta do quadro previsto e a meta de quem de fato separou, e deixa explícito
+          O Dashboard operação mostra lado a lado a meta do quadro previsto e a meta de quem de fato separou, e deixa explícito
           quando falta gente. A meta de volumes por dia e as horas previstas são calculadas sozinhas.
         </p>
         <div class="overflow-x-auto">
@@ -659,7 +732,7 @@
         <h2 class="font-semibold mb-1">Pessoas que separaram</h2>
         <p class="text-sm text-[var(--text-dim)] mb-4">
           Marque quem é separador — eles contam como quadro presente no dia. Quem não é separador tem volumes e horas
-          somados normalmente, mas não conta no quadro. O turno define em qual turno a pessoa aparece no Dashboard.
+          somados normalmente, mas não conta no quadro. O turno define em qual turno a pessoa aparece nos dashboards.
           Quem aparece numa importação nova entra aqui sozinho, como separador, no Turno 1.
         </p>
         <div id="exp-cfg-vazio" class="hidden text-sm text-[var(--text-dim)]">Ninguém ainda — as pessoas aparecem aqui depois da primeira importação.</div>
@@ -1373,6 +1446,10 @@ function montarApp(){
       if (!expDashJaBuscou) expBuscarDashboard({ automatico: true });
       else if (expPrecisaRerender && expUltimaBusca) { expPrecisaRerender = false; expPopularSeparadores(); expRenderDashboard(); }
     }
+    if (nome === 'equipe') {
+      if (!expEqBuscou) expEqBuscar();
+      else if (expEqPrecisaRerender && expEqDados) { expEqPrecisaRerender = false; expEqRender(); }
+    }
     if (nome === 'config') expRenderConfig();
   }
   $$('[data-tab-exp]').forEach(b => b.addEventListener('click', () => trocarAbaExpedicao(b.dataset.tabExp)));
@@ -1381,6 +1458,10 @@ function montarApp(){
   $('#exp-btn-buscar').addEventListener('click', () => expBuscarDashboard());
   let expDashJaBuscou = false;
   let expPrecisaRerender = false;
+  let expEqBuscou = false;
+  let expEqPrecisaRerender = false;
+  let expEqDados = null; // { inicio, fim, dias } da última busca do Dashboard Equipe
+  let expEqCarregando = false;
 
   // ---------- Configurações (quadro previsto, turnos, quem é separador) ----------
   // config/expedicao = {
@@ -1548,6 +1629,7 @@ function montarApp(){
       expConfig = { quadro, separadores, turnos: {} };
       expConfigCarregada = true;
       expPrecisaRerender = true; // o Dashboard refaz metas/turnos ao voltar pra ele
+      expEqPrecisaRerender = true;
       $('#exp-cfg-status').textContent = 'Salvo.';
       setTimeout(() => { $('#exp-cfg-status').textContent = ''; }, 3000);
       toast('Configurações da Expedição salvas.');
@@ -1940,6 +2022,7 @@ function montarApp(){
         await setDoc(doc(db, 'expedicao_dias', dia), expResumirDia(dia, snap.docs.map(d => d.data())));
       }
       expDashJaBuscou = false; // o Dashboard recarrega com os dados novos
+      expEqBuscou = false;
       expListasDoDiaCache.clear();
       toast(`${expFmtNum(novas.length)} lista(s) nova(s) e ${expFmtNum(alteradas.length)} atualizada(s) salvas`
         + (iguais.length ? ` · ${expFmtNum(iguais.length)} já estavam salvas e não foram gravadas de novo` : '')
@@ -2283,13 +2366,165 @@ function montarApp(){
     }).join('');
   }
 
+  // ---------- Dashboard Equipe (comparação entre colaboradores) ----------
+  async function expEqBuscar() {
+    if (expEqCarregando) return;
+    if (!$('#exp-eq-inicio').value || !$('#exp-eq-fim').value) {
+      const p = expPeriodoMesAtual();
+      $('#exp-eq-inicio').value = p.inicio; $('#exp-eq-fim').value = p.fim;
+    }
+    const inicio = $('#exp-eq-inicio').value, fim = $('#exp-eq-fim').value;
+    if (inicio > fim) { toast('A data "De" precisa ser antes da data "Até".', 'erro'); return; }
+    expEqCarregando = true; expEqBuscou = true;
+    $('#exp-eq-carregando').classList.remove('hidden');
+    try {
+      await expGarantirConfig();
+      const snap = await getDocs(query(collection(db, 'expedicao_dias'), where('data', '>=', inicio), where('data', '<=', fim)));
+      const dias = snap.docs.map(d => d.data()).filter(d => d && d.data && d.data >= inicio && d.data <= fim)
+        .sort((a, b) => (a.data < b.data ? -1 : a.data > b.data ? 1 : 0));
+      expEqDados = { inicio, fim, dias };
+      expEqPrecisaRerender = false;
+      expEqRender();
+    } catch (err) {
+      console.error(err);
+      expEqBuscou = false;
+      toast('Erro ao carregar o Dashboard Equipe: ' + (err.message || err), 'erro');
+    } finally {
+      expEqCarregando = false;
+      $('#exp-eq-carregando').classList.add('hidden');
+    }
+  }
+  $('#exp-eq-buscar').addEventListener('click', () => expEqBuscar());
+  $('#exp-eq-turno').addEventListener('change', () => { if (expEqDados) expEqRender(); });
+  $('#exp-eq-matriz-cab').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-exp-dia]');
+    if (b) expAbrirHistoricoDia(b.dataset.expDia, { turno: $('#exp-eq-turno').value, separador: '__todos__' });
+  });
+
+  function expEqRender() {
+    const { inicio, fim, dias: diasPeriodo } = expEqDados;
+    const turno = $('#exp-eq-turno').value;
+    const nomeTurno = turno === 'todos' ? '' : `Turno ${turno}`;
+    const pessoasMap = {}; const datas = [];
+    for (const d of diasPeriodo) {
+      let teve = false;
+      for (const [nm, r] of Object.entries(d.porResponsavel || {})) {
+        if (!r || !(r.listas > 0)) continue;
+        if (turno !== 'todos' && String(expTurnoDe(nm)) !== turno) continue;
+        teve = true;
+        const p = (pessoasMap[nm] ||= { nome: nm, dias: 0, listas: 0, volumes: 0, volumesComTempo: 0, tempoExecSeg: 0, porDia: {} });
+        p.dias++; p.listas += r.listas || 0; p.volumes += r.volumes || 0;
+        p.volumesComTempo += r.volumesComTempo || 0; p.tempoExecSeg += r.tempoExecSeg || 0;
+        p.porDia[d.data] = r.volumes || 0;
+      }
+      if (teve) datas.push(d.data);
+    }
+    const lista = Object.values(pessoasMap).map(p => {
+      const eh = expEhSeparador(p.nome);
+      const q = eh ? expQuadroTurno(String(expTurnoDe(p.nome))) : null;
+      return { ...p, eh, vh: p.tempoExecSeg > 0 ? p.volumesComTempo / (p.tempoExecSeg / 3600) : null,
+        metaVol: q && q.volDiaPessoa ? q.volDiaPessoa * p.dias : null, metaVH: q && q.volHora ? q.volHora : null };
+    }).sort((a, b) => b.volumes - a.volumes || a.nome.localeCompare(b.nome, 'pt-BR'));
+
+    const temDados = lista.length > 0;
+    $('#exp-eq-vazio').classList.toggle('hidden', temDados);
+    $('#exp-eq-conteudo').classList.toggle('hidden', !temDados);
+    if (!temDados) {
+      $('#exp-eq-vazio-texto').textContent = `Nenhuma lista de separação concluída${nomeTurno ? ` no ${nomeTurno}` : ''} entre ${formatDataBR(inicio)} e ${formatDataBR(fim)}.`;
+      return;
+    }
+
+    // ---- cabeçalho e cartões ----
+    const volumes = lista.reduce((a, p) => a + p.volumes, 0);
+    const listas = lista.reduce((a, p) => a + p.listas, 0);
+    const vComT = lista.reduce((a, p) => a + p.volumesComTempo, 0);
+    const tSeg = lista.reduce((a, p) => a + p.tempoExecSeg, 0);
+    const vhEq = tSeg > 0 ? vComT / (tSeg / 3600) : null;
+    const nSep = lista.filter(p => p.eh).length, nNao = lista.length - nSep;
+    $('#exp-eq-titulo').textContent = `Equipe${nomeTurno ? ` — ${nomeTurno}` : ''} · ${formatDataBR(inicio)} a ${formatDataBR(fim)}`;
+    $('#exp-eq-sub').textContent = `${datas.length} dia(s) com listas concluídas no período · dias sem separação não aparecem`;
+    $('#exp-eq-k-pessoas').textContent = expFmtNum(lista.length);
+    $('#exp-eq-k-pessoas-sub').textContent = `${nSep} separador${nSep === 1 ? '' : 'es'}` + (nNao ? ` · ${nNao} não separador${nNao === 1 ? '' : 'es'}` : '');
+    $('#exp-eq-k-volumes').textContent = expFmtNum(volumes);
+    $('#exp-eq-k-volumes-sub').textContent = `${expFmtNum(listas)} lista(s) em ${datas.length} dia(s)`;
+    $('#exp-eq-k-volhora').textContent = vhEq === null ? '–' : expFmtNum(vhEq, 1);
+    $('#exp-eq-k-volhora-sub').textContent = 'Volumes ÷ tempo de execução das listas';
+    const maior = lista[0];
+    $('#exp-eq-k-maior').textContent = expFmtNum(maior.volumes);
+    $('#exp-eq-k-maior-sub').textContent = `${maior.nome} · ${maior.dias} dia(s)`;
+    const comVH = lista.filter(p => p.vh !== null).sort((a, b) => b.vh - a.vh);
+    $('#exp-eq-k-melhor').textContent = comVH.length ? expFmtNum(comVH[0].vh, 1) : '–';
+    $('#exp-eq-k-melhor-sub').textContent = comVH.length ? `${comVH[0].nome} · ${expFmtNum(comVH[0].listas)} lista(s)` : '';
+
+    // ---- gráficos ----
+    const nomes = lista.map(p => p.nome.split(' '));
+    const opcoes = (tituloEixo, casas) => {
+      const o = baseOptions((v) => expFmtNum(v, casas));
+      o.scales.y.beginAtZero = true;
+      o.scales.y.title = { display: true, text: tituloEixo, color: '#8b93a3' };
+      o.plugins.tooltip = { callbacks: { title: (it) => lista[it[0].dataIndex].nome, label: (c) => `${c.dataset.label}: ${expFmtNum(c.parsed.y, casas)}` } };
+      return o;
+    };
+    const tracoMeta = (label, data, cor) => ({
+      type: 'line', label, data, showLine: false, borderColor: cor, backgroundColor: cor, pointStyle: 'line', pointBorderColor: cor, pointBorderWidth: 3,
+      pointRadius: (c) => { const m = c.chart.getDatasetMeta(0).data[c.dataIndex]; return m ? Math.min(30, Math.max(8, m.width / 2 + 4)) : 18; },
+      pointHoverRadius: 0, order: -1,
+    });
+    desenharGrafico('exp-eq-chart-vol', {
+      type: 'bar',
+      data: { labels: nomes, datasets: [
+        { type: 'bar', label: 'Volumes', data: lista.map(p => p.volumes), backgroundColor: '#3b82f6', borderRadius: 4, maxBarThickness: 56, order: 1 },
+        ...(lista.some(p => p.metaVol) ? [tracoMeta('Meta do período', lista.map(p => p.metaVol ? Math.round(p.metaVol * 10) / 10 : null), '#ef4444')] : []),
+      ] },
+      options: opcoes('Volumes no período', 0), plugins: [expRotulosVolumes],
+    });
+    desenharGrafico('exp-eq-chart-volhora', {
+      type: 'bar',
+      data: { labels: nomes, datasets: [
+        { type: 'bar', label: 'Volumes/hora', data: lista.map(p => p.vh === null ? null : Math.round(p.vh * 10) / 10), backgroundColor: '#f5a623', borderRadius: 4, maxBarThickness: 56, order: 1, rotuloCasas: 1 },
+        ...(lista.some(p => p.metaVH) ? [tracoMeta('Meta volumes/hora', lista.map(p => p.metaVH ? Math.round(p.metaVH * 10) / 10 : null), '#b45309')] : []),
+      ] },
+      options: opcoes('Volumes por hora', 1), plugins: [expRotulosVolumes],
+    });
+    const oDia = baseOptions((v) => expFmtNum(v));
+    oDia.scales.x.stacked = true; oDia.scales.y.stacked = true; oDia.scales.y.beginAtZero = true;
+    oDia.scales.y.title = { display: true, text: 'Volumes no dia', color: '#8b93a3' };
+    oDia.interaction = { mode: 'index', intersect: false };
+    oDia.plugins.tooltip = { callbacks: {
+      label: (c) => c.parsed.y ? `${c.dataset.label}: ${expFmtNum(c.parsed.y)}` : null,
+      footer: (it) => `Total do dia: ${expFmtNum(it.reduce((a, i) => a + (i.parsed.y || 0), 0))}`,
+    } };
+    desenharGrafico('exp-eq-chart-dia', {
+      type: 'bar',
+      data: { labels: datas.map(formatDataBR), datasets: lista.map((p, i) => ({
+        label: p.nome, data: datas.map(dt => p.porDia[dt] ?? null), backgroundColor: PALETA_OPERADORES[i % PALETA_OPERADORES.length], maxBarThickness: 56,
+      })) },
+      options: oDia,
+    });
+
+    // ---- tabela colaborador × dia ----
+    $('#exp-eq-matriz-cab').innerHTML = `<tr>
+      <th class="py-2 pr-3 font-medium sticky left-0 bg-[var(--panel)]">Colaborador</th>
+      ${datas.map(dt => `<th class="py-2 px-2 font-medium text-right"><button type="button" data-exp-dia="${dt}" class="underline decoration-dotted underline-offset-2 hover:text-[var(--accent)] cursor-pointer" title="Ver o histórico de separação de ${formatDataBR(dt)}">${formatDataBR(dt).slice(0, 5)}</button></th>`).join('')}
+      <th class="py-2 pl-3 font-medium text-right">Total</th></tr>`;
+    const totDia = (dt) => lista.reduce((a, p) => a + (p.porDia[dt] || 0), 0);
+    $('#exp-eq-matriz').innerHTML = lista.map(p => `<tr class="border-b border-[var(--border)]/50">
+        <td class="py-1.5 pr-3 sticky left-0 bg-[var(--panel)]">${expEsc(p.nome)}${p.eh ? '' : ' <span class="text-[10px] text-[var(--warn)]">(não separador)</span>'}</td>
+        ${datas.map(dt => p.porDia[dt] === undefined ? '<td class="py-1.5 px-2 font-mono text-right text-[var(--text-dim)]">–</td>' : `<td class="py-1.5 px-2 font-mono text-right">${expFmtNum(p.porDia[dt])}</td>`).join('')}
+        <td class="py-1.5 pl-3 font-mono text-right font-semibold">${expFmtNum(p.volumes)}</td></tr>`).join('')
+      + `<tr class="border-t border-[var(--border)] font-semibold">
+        <td class="py-1.5 pr-3 sticky left-0 bg-[var(--panel)]">Total do dia</td>
+        ${datas.map(dt => `<td class="py-1.5 px-2 font-mono text-right">${expFmtNum(totDia(dt))}</td>`).join('')}
+        <td class="py-1.5 pl-3 font-mono text-right">${expFmtNum(volumes)}</td></tr>`;
+  }
+
   // ---------- Histórico de separação do dia (clique na data da tabela "Por dia") ----------
   let expDiaModal = null; // { data, listas, filtroNome, turno, separador }
   const expListasDoDiaCache = new Map();
 
-  async function expAbrirHistoricoDia(data) {
-    const turno = $('#exp-dash-turno').value;
-    const separador = $('#exp-dash-separador').value;
+  async function expAbrirHistoricoDia(data, filtros) {
+    const turno = filtros ? filtros.turno : $('#exp-dash-turno').value;
+    const separador = filtros ? filtros.separador : $('#exp-dash-separador').value;
     expDiaModal = { data, listas: [], filtroNome: null, turno, separador };
     $('#modal-exp-dia-titulo').textContent = `Histórico de separação — ${formatDataBR(data)}`;
     $('#modal-exp-dia-subtitulo').textContent = '';

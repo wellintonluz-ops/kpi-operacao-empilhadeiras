@@ -566,24 +566,15 @@
           </div>
         </div>
 
-        <div class="panel rounded-xl p-5">
-          <div class="relative flex items-center gap-2 mb-3">
-            <p class="text-sm font-semibold">Volumes separados por dia, metas e média de volumes por hora</p>
-            <span class="info-dica">
-              <button type="button" class="info-dica-btn" aria-label="Como este gráfico é calculado" aria-haspopup="true">!</button>
-              <div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo">
-                <p class="tit">Como este gráfico é calculado</p>
-                <p class="dim">Cada ponto é um dia. Só entram listas <b>concluídas</b>, no dia da conclusão (até 00:29 conta no dia anterior). Valem os filtros de Turno e Separador, e dias sem lista não aparecem.</p>
-                <div class="serie" style="color:#3b82f6"><i class="barra"></i><div style="color:var(--text)"><b>Volumes separados</b> (eixo esquerdo): soma dos volumes das listas concluídas do dia.</div></div>
-                <div class="serie" style="color:#f5a623"><i></i><div style="color:var(--text)"><b>Volumes/hora</b> (eixo direito): volumes ÷ soma do tempo de execução das listas, em horas. É o tempo de cada lista somado, não hora de relógio. Lista sem tempo fica fora da conta.</div></div>
-                <div class="serie" style="color:#ef4444"><i class="trac"></i><div style="color:var(--text)"><b>Meta (quadro previsto)</b>: pessoas previstas × meta de volumes/hora × jornada, por turno (soma dos dois turnos em "Todos"). Com um separador escolhido, vira a meta de uma pessoa do turno dele.</div></div>
-                <div class="serie" style="color:#64748b"><i class="trac"></i><div style="color:var(--text)"><b>Meta (com quem separou)</b>: só com "Todos". Soma, de cada separador que concluiu lista no dia, meta/hora × jornada do turno dele. Quem não é separador conta nos volumes e nas horas, mas não na meta.</div></div>
-                <div class="serie" style="color:#b45309"><i class="pont"></i><div style="color:var(--text)"><b>Meta volumes/hora</b> (eixo direito): meta por hora do turno. Com turnos diferentes, é a média ponderada pelas horas de execução de cada separador.</div></div>
-                <p class="dim">Como ler: barra abaixo da meta do quadro previsto, mas perto da meta de quem separou, indica falta de pessoas. Linha laranja abaixo da marrom indica rendimento por hora abaixo da meta.</p>
-              </div></div>
-            </span>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <div class="panel rounded-xl p-5">
+            <div class="relative flex items-center gap-2 mb-3"><p class="text-sm font-semibold">Volumes separados por dia vs meta</p><span class="info-dica"><button type="button" class="info-dica-btn" aria-label="Como este gráfico é calculado" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como este gráfico é calculado</p><p class="dim">Cada ponto é um dia. Só entram listas <b>concluídas</b>, no dia da conclusão (até 00:29 conta no dia anterior). Valem os filtros de Turno e Separador, e dias sem lista não aparecem.</p><div class="serie" style="color:#3b82f6"><i class="barra"></i><div style="color:var(--text)"><b>Volumes separados</b>: soma dos volumes das listas concluídas do dia.</div></div><div class="serie" style="color:#ef4444"><i class="trac"></i><div style="color:var(--text)"><b>Meta (quadro previsto)</b>: pessoas previstas × meta de volumes/hora × jornada, por turno (soma dos dois turnos em "Todos"). Com um separador escolhido, vira "Meta volumes/dia": a meta de uma pessoa do turno dele.</div></div><div class="serie" style="color:#64748b"><i class="trac"></i><div style="color:var(--text)"><b>Meta (com quem separou)</b>: só com "Todos". Soma, de cada separador que concluiu lista no dia, meta/hora × jornada do turno dele. Quem não é separador conta nos volumes, mas não na meta.</div></div><p class="dim">Como ler: barra abaixo da meta do quadro previsto, mas perto da meta de quem separou, indica falta de pessoas.</p></div></div></span></div>
+            <div class="chart-box"><canvas id="exp-chart-dias" height="220"></canvas></div>
           </div>
-          <canvas id="exp-chart-dias" height="90"></canvas>
+          <div class="panel rounded-xl p-5">
+            <div class="relative flex items-center gap-2 mb-3"><p class="text-sm font-semibold">Volumes por hora vs meta</p><span class="info-dica"><button type="button" class="info-dica-btn" aria-label="Como este gráfico é calculado" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como este gráfico é calculado</p><p class="dim">Cada ponto é um dia. Só entram listas <b>concluídas</b>, no dia da conclusão (até 00:29 conta no dia anterior). Valem os filtros de Turno e Separador, e dias sem lista não aparecem.</p><div class="serie" style="color:#f5a623"><i class="barra"></i><div style="color:var(--text)"><b>Volumes/hora</b> = volumes ÷ soma do tempo de execução das listas, em horas. É o tempo de cada lista somado, não hora de relógio. Lista sem tempo fica fora da conta.</div></div><div class="serie" style="color:#b45309"><i class="trac"></i><div style="color:var(--text)"><b>Meta volumes/hora</b>: meta por hora do turno. Com turnos diferentes, é a média ponderada pelas horas de execução de cada separador.</div></div><p class="dim">Como ler: barra abaixo da linha significa rendimento por hora abaixo da meta, independentemente de quantas pessoas trabalharam.</p></div></div></span></div>
+            <div class="chart-box"><canvas id="exp-chart-volhora" height="220"></canvas></div>
+          </div>
         </div>
 
         <div class="panel rounded-xl p-5">
@@ -1982,7 +1973,7 @@ function montarApp(){
           ctx.font = '600 10px Inter, sans-serif';
           ctx.textAlign = 'center';
           ctx.textBaseline = dentro ? 'top' : 'bottom';
-          ctx.fillText(expFmtNum(valor), bar.x, dentro ? bar.y + 5 : bar.y - 4);
+          ctx.fillText(expFmtNum(valor, dataset.rotuloCasas || 0), bar.x, dentro ? bar.y + 5 : bar.y - 4);
           ctx.restore();
         });
       });
@@ -2196,35 +2187,44 @@ function montarApp(){
     // ---- gráfico ----
     const labels = dias.map(d => formatDataBR(d.data));
     const volHoraDia = dias.map(d => d.tempoExecSeg > 0 ? Math.round(d.volumesComTempo / (d.tempoExecSeg / 3600) * 10) / 10 : null);
-    const opts = baseOptions((v) => expFmtNum(v));
-    opts.maintainAspectRatio = true; // este gráfico segue a proporção da largura
-    opts.scales.y.beginAtZero = true;
-    opts.scales.y.title = { display: true, text: 'Volumes no dia', color: '#8b93a3' };
-    opts.scales.y1 = {
-      position: 'right', beginAtZero: true, grid: { drawOnChartArea: false },
-      ticks: { color: '#8b93a3', callback: (v) => expFmtNum(v) },
-      title: { display: true, text: 'Volumes/hora', color: '#8b93a3' },
+    const arred = (v) => (v === null || v === undefined) ? null : Math.round(v * 10) / 10;
+    const opcoes = (tituloEixo, casas) => {
+      const o = baseOptions((v) => expFmtNum(v, casas));
+      o.scales.y.beginAtZero = true;
+      o.scales.y.title = { display: true, text: tituloEixo, color: '#8b93a3' };
+      o.plugins.tooltip = { callbacks: { label: (c) => `${c.dataset.label}: ${expFmtNum(c.parsed.y, casas)}` } };
+      return o;
     };
-    opts.plugins.tooltip = { callbacks: { label: (c) => `${c.dataset.label}: ${expFmtNum(c.parsed.y, c.dataset.yAxisID === 'y1' ? 1 : 0)}` } };
-    const linhaMeta = (label, data, eixo, cor, traco) => ({
-      type: 'line', label, data, yAxisID: eixo, borderColor: cor, backgroundColor: cor, borderWidth: 2, borderDash: traco,
+    const linhaMeta = (label, data, cor, traco) => ({
+      type: 'line', label, data, yAxisID: 'y', borderColor: cor, backgroundColor: cor, borderWidth: 2, borderDash: traco,
       pointStyle: 'line', pointRadius: dias.length === 1 ? 36 : 0, pointBorderWidth: 2, pointHoverRadius: 0,
       fill: false, tension: 0, spanGaps: false, order: -1,
     });
-    const arred = (v) => (v === null || v === undefined) ? null : Math.round(v * 10) / 10;
+    // gráfico 1: volumes por dia e as metas de volume
     desenharGrafico('exp-chart-dias', {
       type: 'bar',
       data: {
         labels,
         datasets: [
-          { type: 'line', label: 'Volumes/hora', data: volHoraDia, yAxisID: 'y1', borderColor: '#f5a623', backgroundColor: '#f5a623', tension: .3, pointRadius: 3, spanGaps: true, order: 0 },
           { type: 'bar', label: 'Volumes separados', data: dias.map(d => d.volumes), yAxisID: 'y', backgroundColor: '#3b82f6', borderRadius: 4, maxBarThickness: 56, order: 1 },
-          ...(dias.some(d => d.metaPrevVolDia) ? [linhaMeta(todosSep ? 'Meta (quadro previsto)' : 'Meta volumes/dia', dias.map(d => arred(d.metaPrevVolDia)), 'y', '#ef4444', [7, 5])] : []),
-          ...(todosSep && dias.some(d => d.metaAjustVolDia) ? [linhaMeta('Meta (com quem separou)', dias.map(d => arred(d.metaAjustVolDia)), 'y', '#64748b', [3, 3])] : []),
-          ...(dias.some(d => d.metaVolHora) ? [linhaMeta('Meta volumes/hora', dias.map(d => arred(d.metaVolHora)), 'y1', '#b45309', [2, 4])] : []),
+          ...(dias.some(d => d.metaPrevVolDia) ? [linhaMeta(todosSep ? 'Meta (quadro previsto)' : 'Meta volumes/dia', dias.map(d => arred(d.metaPrevVolDia)), '#ef4444', [7, 5])] : []),
+          ...(todosSep && dias.some(d => d.metaAjustVolDia) ? [linhaMeta('Meta (com quem separou)', dias.map(d => arred(d.metaAjustVolDia)), '#64748b', [3, 3])] : []),
         ],
       },
-      options: opts,
+      options: opcoes('Volumes no dia', 0),
+      plugins: [expRotulosVolumes],
+    });
+    // gráfico 2: volumes por hora e a meta por hora
+    desenharGrafico('exp-chart-volhora', {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          { type: 'bar', label: 'Volumes/hora', data: volHoraDia, yAxisID: 'y', backgroundColor: '#f5a623', borderRadius: 4, maxBarThickness: 56, order: 1, rotuloCasas: 1 },
+          ...(dias.some(d => d.metaVolHora) ? [linhaMeta('Meta volumes/hora', dias.map(d => arred(d.metaVolHora)), '#b45309', [2, 4])] : []),
+        ],
+      },
+      options: opcoes('Volumes por hora', 1),
       plugins: [expRotulosVolumes],
     });
 

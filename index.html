@@ -662,6 +662,7 @@
           <input type="date" id="exp-eq-fim" class="rounded-lg px-3 py-2 text-sm">
         </div>
         <button id="exp-eq-buscar" class="bg-[var(--accent)] text-black font-semibold text-sm rounded-lg px-4 py-2 hover:brightness-110 transition">Buscar</button>
+        <button id="exp-eq-hoje" type="button" class="border border-[var(--accent)] text-[var(--text)] font-semibold text-sm rounded-lg px-4 py-2 hover:bg-[var(--accent)]/15 transition" title="Mostra só os dados do dia atual">Métricas do dia</button>
         <div id="exp-eq-carregando" class="hidden spinner"></div>
         <p class="text-xs text-[var(--text-dim)] ml-auto">Compara os colaboradores entre si. Abre no mês atual. Só listas concluídas entram.</p>
       </div>
@@ -2497,6 +2498,20 @@ function montarApp(){
     }
   }
   $('#exp-eq-buscar').addEventListener('click', () => expEqBuscar());
+  // "Métricas do dia": mostra só o dia atual (dia operacional: até 00:29 ainda é o dia anterior)
+  const expDiaAtual = () => { const d = new Date(); return expDiaOperacional(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:00`); };
+  $('#exp-eq-hoje').addEventListener('click', () => {
+    const hoje = expDiaAtual();
+    $('#exp-eq-inicio').value = hoje; $('#exp-eq-fim').value = hoje;
+    expEqBuscar();
+  });
+  function expEqMarcarHoje() {
+    const hoje = expDiaAtual(), ativo = $('#exp-eq-inicio').value === hoje && $('#exp-eq-fim').value === hoje;
+    const b = $('#exp-eq-hoje');
+    b.classList.toggle('bg-[var(--accent)]', ativo); b.classList.toggle('text-black', ativo);
+    b.setAttribute('aria-pressed', ativo ? 'true' : 'false');
+  }
+  ['#exp-eq-inicio', '#exp-eq-fim'].forEach(id => $(id).addEventListener('change', expEqMarcarHoje));
   $('#exp-eq-turno').addEventListener('change', () => { if (expEqDados) expEqRender(); });
   $('#exp-eq-matriz-cab').addEventListener('click', (e) => {
     const b = e.target.closest('[data-exp-dia]');
@@ -2507,6 +2522,8 @@ function montarApp(){
     const { inicio, fim, dias: diasPeriodo } = expEqDados;
     const turno = $('#exp-eq-turno').value;
     const nomeTurno = turno === 'todos' ? '' : `Turno ${turno}`;
+    const soHoje = inicio === fim && inicio === expDiaAtual();
+    expEqMarcarHoje();
     const pessoasMap = {}; const datas = [];
     for (const d of diasPeriodo) {
       let teve = false;
@@ -2543,7 +2560,8 @@ function montarApp(){
     const tSeg = lista.reduce((a, p) => a + p.tempoExecSeg, 0);
     const vhEq = tSeg > 0 ? vComT / (tSeg / 3600) : null;
     const nSep = lista.filter(p => p.eh).length, nNao = lista.length - nSep;
-    $('#exp-eq-titulo').textContent = `Equipe${nomeTurno ? ` — ${nomeTurno}` : ''} · ${formatDataBR(inicio)} a ${formatDataBR(fim)}`;
+    $('#exp-eq-titulo').textContent = soHoje ? `Equipe${nomeTurno ? ` — ${nomeTurno}` : ''} · Métricas do dia · ${formatDataBR(inicio)} (parcial)`
+      : `Equipe${nomeTurno ? ` — ${nomeTurno}` : ''} · ${formatDataBR(inicio)} a ${formatDataBR(fim)}`;
     $('#exp-eq-sub').textContent = `${datas.length} dia(s) com listas concluídas no período · dias sem separação não aparecem`;
     $('#exp-eq-k-pessoas').textContent = expFmtNum(lista.length);
     $('#exp-eq-k-pessoas-sub').textContent = `${nSep} separador${nSep === 1 ? '' : 'es'}` + (nNao ? ` · ${nNao} não separador${nNao === 1 ? '' : 'es'}` : '');

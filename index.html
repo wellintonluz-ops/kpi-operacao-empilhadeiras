@@ -574,15 +574,15 @@
           <p class="text-sm font-semibold">Histórico mensal</p>
           <label for="exp-mes-ano" class="text-xs text-[var(--text-dim)]">Ano</label>
           <select id="exp-mes-ano" class="rounded-lg px-3 py-1.5 text-sm"><option value="todos">Todos os anos</option></select>
-          <span class="text-xs text-[var(--text-dim)]">Em "Todos os anos", o mesmo mês de anos diferentes fica lado a lado.</span>
+          <span class="text-xs text-[var(--text-dim)]">Padrão: o ano atual. Em "Todos os anos", o mesmo mês de anos diferentes fica lado a lado.</span>
         </div>
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
           <div class="panel rounded-xl p-5">
-            <div class="relative flex items-center gap-2 mb-3"><p class="text-sm font-semibold">Histórico mensal de separação vs meta</p><span class="info-dica"><button type="button" class="info-dica-btn" aria-label="Como este gráfico é calculado" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como este gráfico é calculado</p><p class="dim">Cada grupo é um <b>mês do calendário</b> e cada cor é um <b>ano</b>: o mesmo mês de anos diferentes fica lado a lado, para ver a diferença. A lista "Ano" mostra um ano só (padrão: todos). Soma só listas <b>concluídas</b>, no dia da conclusão (até 00:29 conta no dia anterior). Valem os filtros de Turno e Separador, mas <b>não o período</b> De/Até. Meses sem lista não aparecem; o mês atual é parcial.</p><div class="serie" style="color:#3b82f6"><i class="barra"></i><div style="color:var(--text)"><b>Volumes separados</b> (uma coluna por ano): soma dos volumes das listas concluídas do mês.</div></div><div class="serie" style="color:#ef4444"><i class="trac"></i><div style="color:var(--text)"><b>Meta (quadro previsto)</b>, traço sobre cada coluna: soma, dia a dia, de pessoas previstas × meta de volumes/hora × jornada (por turno). Só os dias com lista entram. Com um separador escolhido, vira "Meta volumes/mês": a meta de uma pessoa do turno dele.</div></div><div class="serie" style="color:#64748b"><i class="trac"></i><div style="color:var(--text)"><b>Meta (com quem separou)</b>, traço sobre cada coluna: só com "Todos". Soma, dia a dia, de meta/hora × jornada dos separadores que concluíram lista. Quem não é separador conta nos volumes, mas não na meta.</div></div><p class="dim">Passe o mouse num mês para ver, de cada ano, os volumes, os dias com lista e as metas.</p></div></div></span></div>
+            <div class="relative flex items-center gap-2 mb-3"><p class="text-sm font-semibold">Histórico mensal de separação vs meta</p><span class="info-dica"><button type="button" class="info-dica-btn" aria-label="Como este gráfico é calculado" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como este gráfico é calculado</p><p class="dim">Cada grupo é um <b>mês do calendário</b> e cada cor é um <b>ano</b>: o mesmo mês de anos diferentes fica lado a lado, para ver a diferença. A lista "Ano" começa no ano atual; "Todos os anos" põe os anos lado a lado. Soma só listas <b>concluídas</b>, no dia da conclusão (até 00:29 conta no dia anterior). Valem os filtros de Turno e Separador, mas <b>não o período</b> De/Até. Meses sem lista não aparecem; o mês atual é parcial.</p><div class="serie" style="color:#3b82f6"><i class="barra"></i><div style="color:var(--text)"><b>Volumes separados</b> (uma coluna por ano): soma dos volumes das listas concluídas do mês.</div></div><div class="serie" style="color:#ef4444"><i class="trac"></i><div style="color:var(--text)"><b>Meta (quadro previsto)</b>, traço sobre cada coluna: soma, dia a dia, de pessoas previstas × meta de volumes/hora × jornada (por turno). Só os dias com lista entram. Com um separador escolhido, vira "Meta volumes/mês": a meta de uma pessoa do turno dele.</div></div><div class="serie" style="color:#64748b"><i class="trac"></i><div style="color:var(--text)"><b>Meta (com quem separou)</b>, traço sobre cada coluna: só com "Todos". Soma, dia a dia, de meta/hora × jornada dos separadores que concluíram lista. Quem não é separador conta nos volumes, mas não na meta.</div></div><p class="dim">Passe o mouse num mês para ver, de cada ano, os volumes, os dias com lista e as metas.</p></div></div></span></div>
             <div class="chart-box"><canvas id="exp-chart-mes-vol" height="220"></canvas></div>
           </div>
           <div class="panel rounded-xl p-5">
-            <div class="relative flex items-center gap-2 mb-3"><p class="text-sm font-semibold">Histórico mensal de volumes por hora vs meta</p><span class="info-dica"><button type="button" class="info-dica-btn" aria-label="Como este gráfico é calculado" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como este gráfico é calculado</p><p class="dim">Cada grupo é um <b>mês do calendário</b> e cada cor é um <b>ano</b>: o mesmo mês de anos diferentes fica lado a lado, para ver a diferença. A lista "Ano" mostra um ano só (padrão: todos). Soma só listas <b>concluídas</b>, no dia da conclusão (até 00:29 conta no dia anterior). Valem os filtros de Turno e Separador, mas <b>não o período</b> De/Até. Meses sem lista não aparecem; o mês atual é parcial.</p><div class="serie" style="color:#f5a623"><i class="barra"></i><div style="color:var(--text)"><b>Volumes/hora</b> (uma coluna por ano) = volumes do mês ÷ soma do tempo de execução das listas do mês, em horas. É o tempo de cada lista somado, não hora de relógio. Lista sem tempo fica fora da conta.</div></div><div class="serie" style="color:#111827"><i class="trac"></i><div style="color:var(--text)"><b>Meta volumes/hora</b>, traço sobre cada coluna: meta por hora do turno. Com turnos diferentes, é a média ponderada pelas horas de execução.</div></div><p class="dim">Coluna abaixo do traço = rendimento por hora abaixo da meta, independentemente de quantas pessoas trabalharam.</p></div></div></span></div>
+            <div class="relative flex items-center gap-2 mb-3"><p class="text-sm font-semibold">Histórico mensal de volumes por hora vs meta</p><span class="info-dica"><button type="button" class="info-dica-btn" aria-label="Como este gráfico é calculado" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como este gráfico é calculado</p><p class="dim">Cada grupo é um <b>mês do calendário</b> e cada cor é um <b>ano</b>: o mesmo mês de anos diferentes fica lado a lado, para ver a diferença. A lista "Ano" começa no ano atual; "Todos os anos" põe os anos lado a lado. Soma só listas <b>concluídas</b>, no dia da conclusão (até 00:29 conta no dia anterior). Valem os filtros de Turno e Separador, mas <b>não o período</b> De/Até. Meses sem lista não aparecem; o mês atual é parcial.</p><div class="serie" style="color:#f5a623"><i class="barra"></i><div style="color:var(--text)"><b>Volumes/hora</b> (uma coluna por ano) = volumes do mês ÷ soma do tempo de execução das listas do mês, em horas. É o tempo de cada lista somado, não hora de relógio. Lista sem tempo fica fora da conta.</div></div><div class="serie" style="color:#111827"><i class="trac"></i><div style="color:var(--text)"><b>Meta volumes/hora</b>, traço sobre cada coluna: meta por hora do turno. Com turnos diferentes, é a média ponderada pelas horas de execução.</div></div><p class="dim">Coluna abaixo do traço = rendimento por hora abaixo da meta, independentemente de quantas pessoas trabalharam.</p></div></div></span></div>
             <div class="chart-box"><canvas id="exp-chart-mes-volhora" height="220"></canvas></div>
           </div>
         </div>
@@ -1503,6 +1503,7 @@ function montarApp(){
   $$('.exp-btn-logout').forEach(b => b.addEventListener('click', () => $('#btn-logout').click()));
   $('#exp-btn-buscar').addEventListener('click', () => expBuscarDashboard());
   let expDashJaBuscou = false;
+  let expMesAnoEscolhido = null; // ano escolhido na lista do histórico mensal (null = padrão: ano atual)
   let expHistMensalDias = null; // todos os dias já salvos (histórico mensal); recarrega após importar
   let expPrecisaRerender = false;
   let expEqBuscou = false;
@@ -2247,7 +2248,7 @@ function montarApp(){
   }
   // trocar turno ou separador só refiltra o que já foi buscado
   $('#exp-dash-separador').addEventListener('change', () => { if (expUltimaBusca) expRenderDashboard(); });
-  $('#exp-mes-ano').addEventListener('change', () => { if (expUltimaBusca) expRenderDashboard(); });
+  $('#exp-mes-ano').addEventListener('change', () => { expMesAnoEscolhido = $('#exp-mes-ano').value; if (expUltimaBusca) expRenderDashboard(); });
   $('#exp-consol-ano').addEventListener('change', () => { if (expUltimaBusca) expRenderDashboard(); });
   $('#exp-dash-turno').addEventListener('change', () => { if (expUltimaBusca) { expPopularSeparadores(); expRenderDashboard(); } });
 
@@ -2439,7 +2440,7 @@ function montarApp(){
     const porMes = {};
     for (const d of (expHistMensalDias || [])) { const dm = montarDia(d); if (dm) (porMes[d.data.slice(0, 7)] ||= []).push(dm); }
     const hojeMes = expHojeISO().slice(0, 7);
-    const meses = Object.keys(porMes).sort().map(k => {
+    const meses = Object.keys(porMes).sort().filter(k => soma(porMes[k], 'volumes') > 0).map(k => { // mês sem volume nenhum não entra
       const ds = porMes[k];
       const vol = soma(ds, 'volumes'), vct = soma(ds, 'volumesComTempo'), tseg = soma(ds, 'tempoExecSeg');
       const comVH = ds.filter(d => d.metaVolHora && d.tempoExecSeg > 0);
@@ -2456,9 +2457,10 @@ function montarApp(){
     // lista de ano (mantém a escolha enquanto o ano existir; padrão: todos)
     const anosDisp = [...new Set(meses.map(m => m.ano))].sort();
     {
-      const sel = $('#exp-mes-ano'), atual = sel.value;
+      const sel = $('#exp-mes-ano'), anoAtual = expHojeISO().slice(0, 4);
       sel.innerHTML = '<option value="todos">Todos os anos</option>' + anosDisp.map(a => `<option value="${a}">${a}</option>`).join('');
-      sel.value = anosDisp.includes(atual) ? atual : 'todos';
+      const padrao = anosDisp.includes(anoAtual) ? anoAtual : (anosDisp[anosDisp.length - 1] || 'todos'); // padrão: ano atual
+      sel.value = expMesAnoEscolhido && (expMesAnoEscolhido === 'todos' || anosDisp.includes(expMesAnoEscolhido)) ? expMesAnoEscolhido : padrao;
     }
     const anoSel = $('#exp-mes-ano').value;
     const anosUsar = anoSel === 'todos' ? anosDisp : [anoSel];
@@ -2512,12 +2514,12 @@ function montarApp(){
       const NOMES_MES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
       const mesesC = {}; const nfsTotal = new Set(); let faltam = 0;
       // lista de ano: padrão o ano atual (ou o mais recente com dados); mantém a escolha nas atualizações
-      const anosC = [...new Set((expHistMensalDias || []).filter(d => d.listas > 0).map(d => d.data.slice(0, 4)))].sort();
+      const anosC = [...new Set((expHistMensalDias || []).filter(d => d.listas > 0 && d.volumes > 0).map(d => d.data.slice(0, 4)))].sort();
       const selC = $('#exp-consol-ano'), prevC = selC.value, anoAtualC = expHojeISO().slice(0, 4);
       selC.innerHTML = anosC.map(a => `<option value="${a}">${a}</option>`).join('');
       selC.value = anosC.includes(prevC) ? prevC : (anosC.includes(anoAtualC) ? anoAtualC : (anosC[anosC.length - 1] || ''));
       for (const d of expConsolDias()) {
-        if (!(d.listas > 0)) continue;
+        if (!(d.listas > 0) || !(d.volumes > 0)) continue; // dia sem volume não entra no consolidado
         const m = (mesesC[d.data.slice(0, 7)] ||= { dias: 0, volumes: 0, nfs: new Set(), semNfs: 0 });
         m.dias++; m.volumes += d.volumes || 0;
         if (Array.isArray(d.nfs)) d.nfs.forEach(n => { m.nfs.add(n); nfsTotal.add(n); }); else { m.semNfs++; faltam++; }

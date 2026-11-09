@@ -578,7 +578,7 @@
         </div>
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
           <div class="panel rounded-xl p-5">
-            <div class="relative flex items-center gap-2 mb-3"><p class="text-sm font-semibold">Histórico mensal de separação vs meta</p><span class="info-dica"><button type="button" class="info-dica-btn" aria-label="Como este gráfico é calculado" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como este gráfico é calculado</p><p class="dim">Cada grupo é um <b>mês do calendário</b> e cada cor é um <b>ano</b>: o mesmo mês de anos diferentes fica lado a lado, para ver a diferença. A lista "Ano" começa no ano atual; "Todos os anos" põe os anos lado a lado. Soma só listas <b>concluídas</b>, no dia da conclusão (até 00:29 conta no dia anterior). Valem os filtros de Turno e Separador, mas <b>não o período</b> De/Até. Meses sem lista não aparecem; o mês atual é parcial.</p><div class="serie" style="color:#3b82f6"><i class="barra"></i><div style="color:var(--text)"><b>Volumes separados</b> (uma coluna por ano): soma dos volumes das listas concluídas do mês.</div></div><div class="serie" style="color:#ef4444"><i class="trac"></i><div style="color:var(--text)"><b>Meta (quadro previsto)</b>, traço sobre cada coluna: soma, dia a dia, de pessoas previstas × meta de volumes/hora × jornada (por turno). Só os dias com lista entram. Com um separador escolhido, vira "Meta volumes/mês": a meta de uma pessoa do turno dele.</div></div><div class="serie" style="color:#64748b"><i class="trac"></i><div style="color:var(--text)"><b>Meta (com quem separou)</b>, traço sobre cada coluna: só com "Todos". Soma, dia a dia, de meta/hora × jornada dos separadores que concluíram lista. Quem não é separador conta nos volumes, mas não na meta.</div></div><p class="dim">Passe o mouse num mês para ver, de cada ano, os volumes, os dias com lista e as metas.</p></div></div></span></div>
+            <div class="relative flex items-center gap-2 mb-3"><p class="text-sm font-semibold">Histórico mensal de separação vs meta</p><span class="info-dica"><button type="button" class="info-dica-btn" aria-label="Como este gráfico é calculado" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como este gráfico é calculado</p><p class="dim">Cada grupo é um <b>mês do calendário</b> e cada cor é um <b>ano</b>: o mesmo mês de anos diferentes fica lado a lado, para ver a diferença. A lista "Ano" começa no ano atual; "Todos os anos" põe os anos lado a lado. Soma só listas <b>concluídas</b>, no dia da conclusão (até 00:29 conta no dia anterior). Valem os filtros de Turno e Separador, mas <b>não o período</b> De/Até. Meses sem lista não aparecem; o mês atual é parcial.</p><div class="serie" style="color:#3b82f6"><i class="barra"></i><div style="color:var(--text)"><b>Volumes separados</b> (uma coluna por ano): soma dos volumes das listas concluídas do mês.</div></div><div class="serie" style="color:#ef4444"><i class="trac"></i><div style="color:var(--text)"><b>Meta (quadro previsto)</b>, traço sobre cada coluna: soma, dia a dia, de pessoas previstas × meta de volumes/hora × jornada (por turno), com o quadro que valia em cada mês. Só os dias com lista entram. Com um separador escolhido, vira "Meta volumes/mês": a meta de uma pessoa do turno dele.</div></div><div class="serie" style="color:#64748b"><i class="trac"></i><div style="color:var(--text)"><b>Meta (com quem separou)</b>, traço sobre cada coluna: só com "Todos". Soma, dia a dia, de meta/hora × jornada dos separadores que concluíram lista. Quem não é separador conta nos volumes, mas não na meta.</div></div><p class="dim">Passe o mouse num mês para ver, de cada ano, os volumes, os dias com lista e as metas.</p></div></div></span></div>
             <div class="chart-box"><canvas id="exp-chart-mes-vol" height="220"></canvas></div>
           </div>
           <div class="panel rounded-xl p-5">
@@ -771,6 +771,17 @@
             </thead>
             <tbody id="exp-cfg-quadro"></tbody>
           </table>
+        </div>
+        <div class="mt-4 max-w-[1100px]">
+          <div>
+            <label class="text-xs text-[var(--text-dim)] block mb-1" for="exp-cfg-vigencia">Esta alteração vale a partir de</label>
+            <select id="exp-cfg-vigencia" class="rounded-lg px-3 py-2 text-sm"></select>
+            <p class="text-[11px] text-[var(--text-dim)] mt-1">Do mês escolhido em diante vale o novo quadro. Os meses anteriores continuam com o quadro antigo.</p>
+          </div>
+        </div>
+        <div class="mt-5 max-w-[1100px]">
+          <p class="text-sm font-semibold mb-2">Histórico do quadro</p>
+          <div id="exp-cfg-historico" class="space-y-1.5 text-sm"></div>
         </div>
       </div>
 
@@ -1523,14 +1534,33 @@ function montarApp(){
     { id: '1', nome: 'Turno 1 (05:20–14:20)' },
     { id: '2', nome: 'Turno 2 (15:00–00:04)' },
   ];
-  let expConfig = { quadro: {}, separadores: {}, turnos: {} };
+  // Vigências do quadro: cada alteração vale de um mês em diante; os meses anteriores mantêm o quadro antigo.
+  //   quadroVigencias: [ { desde: '0000-00' | 'AAAA-MM', quadro: {...} } ]  (ordem crescente)
+  //   expConfig.quadro = o que vale HOJE (usado quando nenhuma data é informada)
+  const EXP_MESES_CFG = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+  let expConfig = { quadro: {}, vigencias: [], separadores: {}, turnos: {} };
   let expConfigCarregada = false;
   async function expGarantirConfig() {
     if (expConfigCarregada) return;
     const snap = await getDoc(doc(db, 'config', 'expedicao'));
     const dados = snap.exists() ? (snap.data() || {}) : {};
-    expConfig = { quadro: dados.quadro || {}, separadores: dados.separadores || {}, turnos: dados.turnos || {} };
+    expDefinirConfig(dados.quadroVigencias, dados.quadro, dados.separadores, dados.turnos);
     expConfigCarregada = true;
+  }
+  function expDefinirConfig(vigs, quadro, separadores, turnos) {
+    const lista = Array.isArray(vigs) && vigs.length
+      ? vigs.map(v => ({ desde: v.desde || '0000-00', quadro: v.quadro || {} })).sort((a, b) => a.desde < b.desde ? -1 : a.desde > b.desde ? 1 : 0)
+      : [{ desde: '0000-00', quadro: quadro || {} }]; // configuração antiga: um quadro só, desde sempre
+    expConfig = { vigencias: lista, separadores: separadores || {}, turnos: turnos || {}, quadro: {} };
+    const hoje = expVigenciaEm(null);
+    expConfig.quadro = hoje.quadro;
+  }
+  // vigência (quadro + dias/mês) que valia no mês de uma data; sem data, a de hoje
+  function expVigenciaEm(dataISO) {
+    const m = String(dataISO || expHojeISO()).slice(0, 7);
+    let v = expConfig.vigencias[0] || { quadro: {} };
+    for (const x of expConfig.vigencias) if (x.desde <= m) v = x;
+    return v;
   }
   const expTurnoDe = (nome) => (expConfig.separadores[nome] && Number(expConfig.separadores[nome].turno) === 2) ? 2 : 1;
   const expMetaNum = (v) => (v === null || v === undefined || v === '' || !isFinite(Number(v)) || Number(v) <= 0) ? null : Number(v);
@@ -1538,8 +1568,8 @@ function montarApp(){
   const expEhSeparador = (nome) => !(expConfig.separadores[nome] && expConfig.separadores[nome].separador === false);
 
   // parâmetros do quadro de um turno
-  function expQuadroTurno(t) {
-    const q = expConfig.quadro[t] || {};
+  function expQuadroTurno(t, dataISO) { // com data: o quadro que valia naquele mês
+    const q = (dataISO ? expVigenciaEm(dataISO).quadro : expConfig.quadro)[t] || {};
     const jornadaH = q.jornadaH === undefined ? EXP_JORNADA_PADRAO_H : expMetaNum(q.jornadaH);
     const volHora = expMetaNum(q.metaVolHora);
     const jornadaSeg = jornadaH ? Math.round(jornadaH * 3600) : null;
@@ -1551,11 +1581,11 @@ function montarApp(){
     };
   }
   // quadro previsto do filtro (um turno ou os dois somados)
-  function expQuadroPrevisto(turno) {
+  function expQuadroPrevisto(turno, dataISO) {
     const ts = turno === 'todos' ? ['1', '2'] : [turno];
     let pessoas = 0, horasSeg = 0, volDia = 0, horasComMeta = 0, temVol = false, temHoras = false;
     for (const t of ts) {
-      const q = expQuadroTurno(t);
+      const q = expQuadroTurno(t, dataISO);
       if (!q.pessoas) continue;
       pessoas += q.pessoas;
       if (q.jornadaSeg) { horasSeg += q.pessoas * q.jornadaSeg; temHoras = true; }
@@ -1573,6 +1603,13 @@ function montarApp(){
   async function expRenderConfig() {
     try { await expGarantirConfig(); } catch (err) { console.error(err); toast('Erro ao carregar as configurações: ' + (err.message || err), 'erro'); return; }
     const valor = (v) => (expMetaNum(v) === null ? '' : String(v));
+    // quando a alteração passa a valer: o mês atual ou um dos próximos 11 meses
+    {
+      const ini = expHojeISO(); let a = Number(ini.slice(0, 4)), m = Number(ini.slice(5, 7)); const ops = [];
+      for (let i = 0; i < 12; i++) { ops.push(`<option value="${a}-${pad(m)}">${EXP_MESES_CFG[m - 1]}/${a}${i === 0 ? ' (mês atual)' : ''}</option>`); if (++m > 12) { m = 1; a++; } }
+      $('#exp-cfg-vigencia').innerHTML = ops.join('');
+    }
+    expRenderHistoricoQuadro();
     $('#exp-cfg-quadro').innerHTML = EXP_TURNOS_QUADRO.map(t => {
       const q = expConfig.quadro[t.id] || {};
       return `
@@ -1625,6 +1662,20 @@ function montarApp(){
     }).join('');
   }
 
+  // histórico das vigências do quadro (mais recente primeiro)
+  function expRenderHistoricoQuadro() {
+    const mesAtual = expHojeISO().slice(0, 7), vigAtual = expVigenciaEm(null);
+    const nomeMes = (k) => k === '0000-00' ? 'o início' : `${EXP_MESES_CFG[Number(k.slice(5)) - 1]}/${k.slice(0, 4)}`;
+    $('#exp-cfg-historico').innerHTML = [...expConfig.vigencias].reverse().map(v => {
+      const turnos = EXP_TURNOS_QUADRO.map(t => {
+        const q = v.quadro[t.id] || {};
+        return q.pessoas ? `Turno ${t.id}: ${expFmtNum(q.pessoas)} separador(es)${q.metaVolHora ? ` · ${expFmtNum(q.metaVolHora, 1)} vol/h` : ''}` : null;
+      }).filter(Boolean).join(' · ') || 'sem quadro definido';
+      const rotulo = v === vigAtual ? ' <span class="text-[10px] font-semibold" style="color:var(--ok)">vigente</span>' : v.desde > mesAtual ? ' <span class="text-[10px] font-semibold" style="color:var(--warn)">futuro</span>' : '';
+      return `<p class="rounded-lg px-3 py-2 border border-[var(--border)]/60">Desde <b>${nomeMes(v.desde)}</b>${rotulo}: ${turnos}</p>`;
+    }).join('');
+  }
+
   // cálculos da tabela do quadro, atualizados enquanto digita
   function expLerQuadroDaTela() {
     const quadro = {};
@@ -1634,6 +1685,8 @@ function montarApp(){
     });
     return quadro;
   }
+  expLerQuadroDaTela.limpar = (q) => { const r = {}; EXP_TURNOS_QUADRO.forEach(t => { const x = (q || {})[t.id] || {}; const n = (v) => { v = expMetaNum(v); return v === null ? null : Math.round(v * 10) / 10; };
+    r[t.id] = { pessoas: n(x.pessoas), metaVolHora: n(x.metaVolHora), jornadaH: x.jornadaH === undefined ? n(EXP_JORNADA_PADRAO_H) : n(x.jornadaH) }; }); return r; };
   function expAtualizarCalculosQuadro() {
     const salvo = expConfig.quadro;
     expConfig.quadro = expLerQuadroDaTela(); // calcula com o que está na tela, sem salvar
@@ -1663,6 +1716,7 @@ function montarApp(){
 
   $('#exp-btn-salvar-config').addEventListener('click', async () => {
     const quadro = expLerQuadroDaTela();
+    const desde = $('#exp-cfg-vigencia').value || expHojeISO().slice(0, 7);
     const separadores = {};
     $$('#exp-cfg-separadores [data-cfg-sep]').forEach(tr => {
       separadores[tr.dataset.cfgSep] = {
@@ -1673,9 +1727,21 @@ function montarApp(){
     const btn = $('#exp-btn-salvar-config');
     btn.disabled = true;
     try {
-      await setDoc(doc(db, 'config', 'expedicao'), { quadro, separadores, atualizadoEm: new Date().toISOString() });
-      expConfig = { quadro, separadores, turnos: {} };
+      // vigências: o que valia no mês escolhido é comparado com o novo; se mudou, o novo vale dali em diante
+      // (vigências posteriores são substituídas) e tudo antes do mês escolhido fica como estava
+      let vigs = expConfig.vigencias.map(v => ({ ...v }));
+      const noMes = expVigenciaEm(desde + '-01');
+      const igual = JSON.stringify(quadro) === JSON.stringify(expLerQuadroDaTela.limpar(noMes.quadro));
+      if (!igual) {
+        const semQuadro = !EXP_TURNOS_QUADRO.some(t => expMetaNum((vigs[0].quadro[t.id] || {}).pessoas));
+        if (vigs.length === 1 && semQuadro) vigs = [{ desde: '0000-00', quadro }]; // primeira configuração: vale desde sempre
+        else vigs = vigs.filter(v => v.desde < desde).concat([{ desde, quadro }]);
+      }
+      const hojeV = (() => { const m = expHojeISO().slice(0, 7); let v = vigs[0]; for (const x of vigs) if (x.desde <= m) v = x; return v; })();
+      await setDoc(doc(db, 'config', 'expedicao'), { quadro: hojeV.quadro, quadroVigencias: vigs, separadores, atualizadoEm: new Date().toISOString() });
+      expDefinirConfig(vigs, null, separadores, {});
       expConfigCarregada = true;
+      await expRenderConfig();
       expPrecisaRerender = true; // o Dashboard refaz metas/turnos ao voltar pra ele
       expEqPrecisaRerender = true;
       $('#exp-cfg-status').textContent = 'Salvo.';
@@ -2279,8 +2345,10 @@ function montarApp(){
     // Metas: com Separador "Todos", a do QUADRO PREVISTO do turno (ou dos dois) e,
     // para comparar, a de quem de fato separou no dia. Com uma pessoa escolhida,
     // a meta de um separador do turno dela (meta/hora × jornada).
-    const previsto = todosSep ? expQuadroPrevisto(turno) : null;
-    const qPessoa = !todosSep && !naoSepEscolhido ? expQuadroTurno(String(expTurnoDe(separador))) : null;
+    const hojeISO = expHojeISO(), refData = fim && fim < hojeISO ? fim : hojeISO; // cards: quadro que valia no fim do período (ou hoje)
+    const prevEm = (data) => todosSep ? expQuadroPrevisto(turno, data) : null;
+    const qPessoaEm = (data) => !todosSep && !naoSepEscolhido ? expQuadroTurno(String(expTurnoDe(separador)), data) : null;
+    const previsto = prevEm(refData), qPessoa = qPessoaEm(refData);
 
     const pessoasDoDia = (d) => Object.entries(d.porResponsavel || {}).filter(([nm, r]) => r && r.listas > 0
       && (todosSep ? (turno === 'todos' || String(expTurnoDe(nm)) === turno) : nm === separador));
@@ -2295,20 +2363,22 @@ function montarApp(){
         if (!expEhSeparador(nm)) continue; // soma volumes/horas, mas não conta no quadro nem na meta
         dia.separadores++;
         dia.tempoSepSeg += r.tempoExecSeg || 0; // horas só de separadores (card e tabela de horas)
-        const q = expQuadroTurno(String(expTurnoDe(nm)));
+        const q = expQuadroTurno(String(expTurnoDe(nm)), d.data);
         if (q.volDiaPessoa) dia.metaAjustVolDia = (dia.metaAjustVolDia || 0) + q.volDiaPessoa;
         if (q.jornadaSeg) dia.metaAjustHorasSeg = (dia.metaAjustHorasSeg || 0) + q.jornadaSeg;
         // meta de volumes/hora: média das metas, ponderada pelas horas de cada separador
         if (q.volHora && r.tempoExecSeg > 0) { dia.metaVolHoraPeso += q.volHora * r.tempoExecSeg; dia.metaVolHoraTempo += r.tempoExecSeg; }
       }
       if (todosSep) {
-        dia.metaPrevVolDia = previsto.volDia;
-        dia.metaPrevHorasSeg = previsto.horasSeg;
-        dia.metaVolHora = dia.metaVolHoraTempo > 0 ? dia.metaVolHoraPeso / dia.metaVolHoraTempo : previsto.volHora;
+        const pv = prevEm(d.data); // quadro previsto que valia naquele mês
+        dia.metaPrevVolDia = pv.volDia;
+        dia.metaPrevHorasSeg = pv.horasSeg;
+        dia.metaVolHora = dia.metaVolHoraTempo > 0 ? dia.metaVolHoraPeso / dia.metaVolHoraTempo : pv.volHora;
       } else {
-        dia.metaPrevVolDia = qPessoa ? qPessoa.volDiaPessoa : null;
-        dia.metaPrevHorasSeg = qPessoa ? qPessoa.jornadaSeg : null;
-        dia.metaVolHora = qPessoa ? qPessoa.volHora : null;
+        const qp = qPessoaEm(d.data);
+        dia.metaPrevVolDia = qp ? qp.volDiaPessoa : null;
+        dia.metaPrevHorasSeg = qp ? qp.jornadaSeg : null;
+        dia.metaVolHora = qp ? qp.volHora : null;
         dia.metaAjustVolDia = null; dia.metaAjustHorasSeg = null;
       }
       return dia;
@@ -2608,11 +2678,15 @@ function montarApp(){
         const s = (sep[nome] ||= { dias: 0, listas: 0, volumes: 0, volumesComTempo: 0, tempoExecSeg: 0 });
         s.dias += 1; s.listas += r.listas || 0; s.volumes += r.volumes || 0;
         s.volumesComTempo += r.volumesComTempo || 0; s.tempoExecSeg += r.tempoExecSeg || 0;
+        if (expEhSeparador(nome)) { // metas do quadro que valia em cada dia
+          const qd = expQuadroTurno(String(expTurnoDe(nome)), d.data);
+          if (qd.volDiaPessoa) { s.metaVol = (s.metaVol || 0) + qd.volDiaPessoa; s.diasMeta = (s.diasMeta || 0) + 1; }
+          if (qd.volHora && r.tempoExecSeg > 0) { s.mvhP = (s.mvhP || 0) + qd.volHora * r.tempoExecSeg; s.mvhT = (s.mvhT || 0) + r.tempoExecSeg; }
+        }
       }
     }
     $('#exp-tabela-separadores').innerHTML = Object.entries(sep).filter(([, s]) => s.listas > 0).sort((a, b) => b[1].volumes - a[1].volumes).map(([nome, s]) => {
       const eh = expEhSeparador(nome);
-      const q = eh ? expQuadroTurno(String(expTurnoDe(nome))) : null;
       const vh = s.tempoExecSeg > 0 ? s.volumesComTempo / (s.tempoExecSeg / 3600) : null;
       const vd = s.volumes / s.dias;
       return `
@@ -2623,10 +2697,10 @@ function montarApp(){
         <td class="py-1.5 pr-3 font-mono text-right">${expFmtNum(s.listas)}</td>
         <td class="py-1.5 pr-3 font-mono text-right">${expFmtNum(s.volumes)}</td>
         <td class="py-1.5 pr-3 font-mono text-right">${expFmtNum(vd, 1)}</td>
-        <td class="py-1.5 pr-3 font-mono text-right">${celPct(q ? pct(vd, q.volDiaPessoa) : null)}</td>
+        <td class="py-1.5 pr-3 font-mono text-right">${celPct(eh ? pct(vd, s.diasMeta ? s.metaVol / s.diasMeta : null) : null)}</td>
         <td class="py-1.5 pr-3 font-mono text-right">${expFmtDuracao(s.tempoExecSeg)}</td>
         <td class="py-1.5 pr-3 font-mono text-right">${vh === null ? '–' : expFmtNum(vh, 1)}</td>
-        <td class="py-1.5 font-mono text-right">${celPct(q ? pct(vh, q.volHora) : null)}</td>
+        <td class="py-1.5 font-mono text-right">${celPct(eh ? pct(vh, s.mvhT > 0 ? s.mvhP / s.mvhT : null) : null)}</td>
       </tr>`;
     }).join('');
   }
@@ -2698,14 +2772,18 @@ function montarApp(){
         p.dias++; p.listas += r.listas || 0; p.volumes += r.volumes || 0;
         p.volumesComTempo += r.volumesComTempo || 0; p.tempoExecSeg += r.tempoExecSeg || 0;
         p.porDia[d.data] = r.volumes || 0;
+        if (expEhSeparador(nm)) { // metas do quadro que valia em cada dia
+          const qd = expQuadroTurno(String(expTurnoDe(nm)), d.data);
+          if (qd.volDiaPessoa) p.metaVolSoma = (p.metaVolSoma || 0) + qd.volDiaPessoa;
+          if (qd.volHora && r.tempoExecSeg > 0) { p.mvhP = (p.mvhP || 0) + qd.volHora * r.tempoExecSeg; p.mvhT = (p.mvhT || 0) + r.tempoExecSeg; }
+        }
       }
       if (teve) datas.push(d.data);
     }
     const lista = Object.values(pessoasMap).map(p => {
       const eh = expEhSeparador(p.nome);
-      const q = eh ? expQuadroTurno(String(expTurnoDe(p.nome))) : null;
       return { ...p, eh, vh: p.tempoExecSeg > 0 ? p.volumesComTempo / (p.tempoExecSeg / 3600) : null,
-        metaVol: q && q.volDiaPessoa ? q.volDiaPessoa * p.dias : null, metaVH: q && q.volHora ? q.volHora : null };
+        metaVol: eh && p.metaVolSoma ? p.metaVolSoma : null, metaVH: eh && p.mvhT > 0 ? p.mvhP / p.mvhT : null };
     }).sort((a, b) => b.volumes - a.volumes || a.nome.localeCompare(b.nome, 'pt-BR'));
 
     const temDados = lista.length > 0;
@@ -2755,7 +2833,7 @@ function montarApp(){
           const p = (m.pessoas[nm] ||= { vol: 0, vct: 0, t: 0, meta: null, metaVH: null });
           p.vol += r.volumes || 0; p.vct += r.volumesComTempo || 0; p.t += r.tempoExecSeg || 0;
           if (expEhSeparador(nm)) { // meta só de quem é separador: meta/dia × dias em que separou, e meta por hora do turno
-            const q = expQuadroTurno(String(expTurnoDe(nm)));
+            const q = expQuadroTurno(String(expTurnoDe(nm)), d.data);
             if (q.volDiaPessoa) p.meta = (p.meta || 0) + q.volDiaPessoa;
             if (q.volHora) p.metaVH = q.volHora;
           }
@@ -2940,7 +3018,7 @@ function montarApp(){
 
     $('#modal-exp-dia-pessoas').innerHTML = pessoas.length ? pessoas.map(p => {
       const eh = expEhSeparador(p.nome);
-      const q = eh ? expQuadroTurno(String(expTurnoDe(p.nome))) : null;
+      const q = eh ? expQuadroTurno(String(expTurnoDe(p.nome)), expDiaModal.data) : null;
       const vh = p.tempoExecSeg > 0 ? p.volumesComTempo / (p.tempoExecSeg / 3600) : null;
       const ativo = filtroNome === p.nome;
       return `<tr data-exp-dia-pessoa="${expEsc(p.nome)}" class="border-b border-[var(--border)]/50 cursor-pointer hover:bg-black/5"${ativo ? ' style="background:rgba(245,166,35,.12); font-weight:600"' : ''} title="Ver só as listas de ${expEsc(p.nome)}">
@@ -3004,7 +3082,7 @@ function montarApp(){
     const num = (v, c = 1) => v === null || v === undefined || !isFinite(v) ? '' : Math.round(v * 10 ** c) / 10 ** c;
     const resumo = expResumoPessoasDia(listas).map(p => {
       const eh = expEhSeparador(p.nome);
-      const q = eh ? expQuadroTurno(String(expTurnoDe(p.nome))) : null;
+      const q = eh ? expQuadroTurno(String(expTurnoDe(p.nome)), data) : null;
       const vh = p.tempoExecSeg > 0 ? p.volumesComTempo / (p.tempoExecSeg / 3600) : null;
       return {
         'Data': dataBR, 'Colaborador': p.nome, 'Turno': expTurnoDe(p.nome), 'É separador': eh ? 'Sim' : 'Não',

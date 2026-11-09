@@ -2891,11 +2891,11 @@ function montarApp(){
 
     // ---- gráficos ----
     const nomes = lista.map(p => p.nome.split(' '));
-    const opcoes = (tituloEixo, casas) => {
+    const opcoes = (tituloEixo, casas, base = lista) => {
       const o = baseOptions((v) => expFmtNum(v, casas));
       o.scales.y.beginAtZero = true;
       o.scales.y.title = { display: true, text: tituloEixo, color: '#8b93a3' };
-      o.plugins.tooltip = { callbacks: { title: (it) => lista[it[0].dataIndex].nome, label: (c) => `${c.dataset.label}: ${expFmtNum(c.parsed.y, casas)}` } };
+      o.plugins.tooltip = { callbacks: { title: (it) => base[it[0].dataIndex].nome, label: (c) => `${c.dataset.label}: ${expFmtNum(c.parsed.y, casas)}` } };
       return o;
     };
     const tracoMeta = (label, data, cor) => ({
@@ -2911,13 +2911,16 @@ function montarApp(){
       ] },
       options: opcoes('Volumes no período', 0), plugins: [expRotulosVolumes],
     });
+    // volumes por hora: do maior para o menor (quem não tem horas fica no fim)
+    const listaVH = [...lista].sort((a, b) => (b.vh ?? -1) - (a.vh ?? -1) || a.nome.localeCompare(b.nome, 'pt-BR'));
+    const nomesVH = listaVH.map(p => p.nome.split(' '));
     desenharGrafico('exp-eq-chart-volhora', {
       type: 'bar',
-      data: { labels: nomes, datasets: [
-        { type: 'bar', label: 'Volumes/hora', data: lista.map(p => p.vh === null ? null : Math.round(p.vh * 10) / 10), backgroundColor: '#f5a623', borderRadius: 4, maxBarThickness: 56, order: 1, rotuloCasas: 1 },
-        ...(lista.some(p => p.metaVH) ? [tracoMeta('Meta volumes/hora', lista.map(p => p.metaVH ? Math.round(p.metaVH * 10) / 10 : null), '#b45309')] : []),
+      data: { labels: nomesVH, datasets: [
+        { type: 'bar', label: 'Volumes/hora', data: listaVH.map(p => p.vh === null ? null : Math.round(p.vh * 10) / 10), backgroundColor: '#f5a623', borderRadius: 4, maxBarThickness: 56, order: 1, rotuloCasas: 1 },
+        ...(listaVH.some(p => p.metaVH) ? [tracoMeta('Meta volumes/hora', listaVH.map(p => p.metaVH ? Math.round(p.metaVH * 10) / 10 : null), '#b45309')] : []),
       ] },
-      options: opcoes('Volumes por hora', 1), plugins: [expRotulosVolumes],
+      options: opcoes('Volumes por hora', 1, listaVH), plugins: [expRotulosVolumes],
     });
     const oDia = baseOptions((v) => expFmtNum(v));
     oDia.scales.x.stacked = true; oDia.scales.y.stacked = true; oDia.scales.y.beginAtZero = true;

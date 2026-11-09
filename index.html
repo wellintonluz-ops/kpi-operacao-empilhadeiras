@@ -716,11 +716,11 @@
 
         <div id="exp-eq-mensal" class="grid grid-cols-1 lg:grid-cols-2 gap-5">
           <div class="panel rounded-xl p-5">
-            <div class="relative flex items-center gap-2 mb-3"><p class="text-sm font-semibold">Histórico mensal da equipe — volumes por colaborador</p><span class="info-dica"><button type="button" class="info-dica-btn" aria-label="Como este gráfico é calculado" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como este gráfico é calculado</p><p class="dim">Cada ponto é um <b>mês</b> (últimos 12), somando só listas <b>concluídas</b>, no dia da conclusão (até 00:29 conta no dia anterior). Vale o filtro de Turno, mas <b>não o período</b> De/Até. Meses sem lista não aparecem; o mês atual é parcial (*). Com até 10 colaboradores no histórico, cada um tem a sua cor; acima disso, os menores entram em "Outros".</p><p>Cada cor é um colaborador e a altura de cada parte é o volume que ele separou no mês. A barra inteira é o volume da equipe no mês (aparece ao passar o mouse, com os dias com lista).</p><div class="serie" style="color:#111827"><i></i><div style="color:var(--text)"><b>Meta do mês (com quem separou)</b>: traço sobre a barra. Soma, dia a dia, da meta de volumes/dia (meta/hora × jornada do turno) de cada separador que concluiu lista. Quem não é separador conta nos volumes, mas não na meta.</div></div></div></div></span></div>
+            <div class="relative flex items-center gap-2 mb-3"><p class="text-sm font-semibold">Histórico mensal da equipe — volumes por colaborador</p><span class="info-dica"><button type="button" class="info-dica-btn" aria-label="Como este gráfico é calculado" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como este gráfico é calculado</p><p class="dim">Cada grupo de colunas é um <b>mês</b> (últimos 12), somando só listas <b>concluídas</b>, no dia da conclusão (até 00:29 conta no dia anterior). Vale o filtro de Turno, mas <b>não o período</b> De/Até. Meses sem lista não aparecem; o mês atual é parcial (*). Com até 10 colaboradores no histórico, cada um tem a sua cor; acima disso, os menores entram em "Outros".</p><p>Cada cor é um colaborador, e cada coluna em pé é o volume que ele separou no mês, lado a lado com os demais. O total da equipe no mês e os dias com lista aparecem ao passar o mouse.</p><div class="serie" style="color:#111827"><i></i><div style="color:var(--text)"><b>Meta do mês</b> (traço preto sobre a coluna): meta de volumes/dia dele (meta/hora × jornada do turno) × os dias do mês em que ele separou. Quem não é separador fica sem meta.</div></div></div></div></span></div>
             <div class="chart-box"><canvas id="exp-eq-chart-mes-vol" height="220"></canvas></div>
           </div>
           <div class="panel rounded-xl p-5">
-            <div class="relative flex items-center gap-2 mb-3"><p class="text-sm font-semibold">Histórico mensal da equipe — volumes por hora vs meta</p><span class="info-dica"><button type="button" class="info-dica-btn" aria-label="Como este gráfico é calculado" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como este gráfico é calculado</p><p class="dim">Cada ponto é um <b>mês</b> (últimos 12), somando só listas <b>concluídas</b>, no dia da conclusão (até 00:29 conta no dia anterior). Vale o filtro de Turno, mas <b>não o período</b> De/Até. Meses sem lista não aparecem; o mês atual é parcial (*). Com até 10 colaboradores no histórico, cada um tem a sua cor; acima disso, os menores entram em "Outros".</p><p>Uma linha por colaborador: <b>volumes do mês ÷ soma do tempo de execução das listas do mês</b>, em horas. É o tempo de cada lista somado, não hora de relógio. Lista sem tempo fica fora da conta.</p><div class="serie" style="color:#111827"><i></i><div style="color:var(--text)"><b>Meta volumes/hora</b>: traço em cada mês com a meta por hora do turno. Com turnos diferentes, é a média ponderada pelas horas dos separadores.</div></div><p class="dim">Quem não separou no mês fica sem ponto, e a linha liga o mês anterior ao seguinte.</p></div></div></span></div>
+            <div class="relative flex items-center gap-2 mb-3"><p class="text-sm font-semibold">Histórico mensal da equipe — volumes por hora vs meta</p><span class="info-dica"><button type="button" class="info-dica-btn" aria-label="Como este gráfico é calculado" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como este gráfico é calculado</p><p class="dim">Cada grupo de colunas é um <b>mês</b> (últimos 12), somando só listas <b>concluídas</b>, no dia da conclusão (até 00:29 conta no dia anterior). Vale o filtro de Turno, mas <b>não o período</b> De/Até. Meses sem lista não aparecem; o mês atual é parcial (*). Com até 10 colaboradores no histórico, cada um tem a sua cor; acima disso, os menores entram em "Outros".</p><p>Uma coluna em pé por colaborador em cada mês: <b>volumes do mês ÷ soma do tempo de execução das listas dele no mês</b>, em horas. É o tempo de cada lista somado, não hora de relógio. Lista sem tempo fica fora da conta.</p><div class="serie" style="color:#111827"><i></i><div style="color:var(--text)"><b>Meta volumes/hora</b> (traço preto sobre a coluna): a meta por hora do turno dele (Configurações). Quem não é separador fica sem meta.</div></div><p class="dim">Quem não separou no mês fica sem coluna.</p></div></div></span></div>
             <div class="chart-box"><canvas id="exp-eq-chart-mes-volhora" height="220"></canvas></div>
           </div>
         </div>
@@ -2677,14 +2677,14 @@ function montarApp(){
         for (const [nm, r] of Object.entries(d.porResponsavel || {})) {
           if (!r || !(r.listas > 0)) continue;
           if (turno !== 'todos' && String(expTurnoDe(nm)) !== turno) continue;
-          const m = (porMes[d.data.slice(0, 7)] ||= { dias: new Set(), pessoas: {}, metaVol: 0, vhPeso: 0, vhTempo: 0 });
+          const m = (porMes[d.data.slice(0, 7)] ||= { dias: new Set(), pessoas: {} });
           m.dias.add(d.data);
-          const p = (m.pessoas[nm] ||= { vol: 0, vct: 0, t: 0 });
+          const p = (m.pessoas[nm] ||= { vol: 0, vct: 0, t: 0, meta: null, metaVH: null });
           p.vol += r.volumes || 0; p.vct += r.volumesComTempo || 0; p.t += r.tempoExecSeg || 0;
-          if (expEhSeparador(nm)) {
+          if (expEhSeparador(nm)) { // meta só de quem é separador: meta/dia × dias em que separou, e meta por hora do turno
             const q = expQuadroTurno(String(expTurnoDe(nm)));
-            if (q.volDiaPessoa) m.metaVol += q.volDiaPessoa;
-            if (q.volHora && r.tempoExecSeg > 0) { m.vhPeso += q.volHora * r.tempoExecSeg; m.vhTempo += r.tempoExecSeg; }
+            if (q.volDiaPessoa) p.meta = (p.meta || 0) + q.volDiaPessoa;
+            if (q.volHora) p.metaVH = q.volHora;
           }
         }
       }
@@ -2698,37 +2698,44 @@ function montarApp(){
       const hojeMes = expDiaAtual().slice(0, 7);
       const rot = chaves.map(k => `${MESES_ABREV[Number(k.slice(5)) - 1]}/${k.slice(2, 4)}${k === hojeMes ? '*' : ''}`);
       const volPessoa = (k, nm) => porMes[k].pessoas[nm] ? porMes[k].pessoas[nm].vol : null;
-      const dsVol = top.map(nm => ({ type: 'bar', label: nm, data: chaves.map(k => volPessoa(k, nm)), backgroundColor: corPessoa(nm), maxBarThickness: 56, stack: 'v', order: 1 }));
-      if (outros.length) dsVol.push({ type: 'bar', label: 'Outros', data: chaves.map(k => { const v = outros.reduce((a, nm) => a + (volPessoa(k, nm) || 0), 0); return v || null; }), backgroundColor: '#94a3b8', maxBarThickness: 56, stack: 'v', order: 1 });
-      const temMeta = chaves.some(k => porMes[k].metaVol);
-      if (temMeta) dsVol.push({
-        type: 'line', label: 'Meta do mês (com quem separou)', data: chaves.map(k => porMes[k].metaVol ? Math.round(porMes[k].metaVol * 10) / 10 : null),
-        showLine: false, borderColor: '#111827', backgroundColor: '#111827', pointStyle: 'line', pointBorderColor: '#111827', pointBorderWidth: 3,
-        pointRadius: (c) => { const m = c.chart.getDatasetMeta(0).data[c.dataIndex]; return m ? Math.min(34, Math.max(8, m.width / 2 + 4)) : 18; },
-        pointHoverRadius: 0, order: -1,
-      });
+      // colunas em pé lado a lado (uma por colaborador em cada mês); a meta de cada um é um traço sobre a coluna
+      const metaNasColunas = { id: 'metaNasColunas', afterDatasetsDraw(chart) {
+        const { ctx, scales: { y } } = chart;
+        chart.data.datasets.forEach((ds, di) => {
+          if (!ds.metaBarra || !chart.isDatasetVisible(di)) return;
+          chart.getDatasetMeta(di).data.forEach((bar, i) => {
+            const v = ds.metaBarra[i];
+            if (v === null || v === undefined || ds.data[i] === null || ds.data[i] === undefined) return;
+            const yy = y.getPixelForValue(v);
+            ctx.save(); ctx.strokeStyle = '#111827'; ctx.lineWidth = 2.5; ctx.beginPath();
+            ctx.moveTo(bar.x - bar.width / 2 - 2, yy); ctx.lineTo(bar.x + bar.width / 2 + 2, yy); ctx.stroke(); ctx.restore();
+          });
+        });
+      } };
+      const legendaMeta = (rotulo) => ({ type: 'line', label: rotulo, data: [], showLine: false, borderColor: '#111827', backgroundColor: '#111827', pointStyle: 'line', pointBorderColor: '#111827', pointBorderWidth: 3, pointRadius: 8 });
+      const maxAlto = (ds) => Math.max(0, ...ds.flatMap(d => [...d.data, ...(d.metaBarra || [])].filter(v => typeof v === 'number')));
+      const dsVol = top.map(nm => ({ type: 'bar', label: nm, data: chaves.map(k => volPessoa(k, nm)), metaBarra: chaves.map(k => porMes[k].pessoas[nm] ? porMes[k].pessoas[nm].meta : null), backgroundColor: corPessoa(nm), maxBarThickness: 40, order: 1 }));
+      if (outros.length) dsVol.push({ type: 'bar', label: 'Outros', data: chaves.map(k => { const v = outros.reduce((a, nm) => a + (volPessoa(k, nm) || 0), 0); return v || null; }), backgroundColor: '#94a3b8', maxBarThickness: 40, order: 1 });
+      if (dsVol.some(d => (d.metaBarra || []).some(v => v))) dsVol.push(legendaMeta('Meta do mês (traço em cada coluna)'));
       const oVol = baseOptions((v) => expFmtNum(v));
-      oVol.scales.x.stacked = true; oVol.scales.y.stacked = true; oVol.scales.y.beginAtZero = true;
+      oVol.scales.y.beginAtZero = true; oVol.scales.y.suggestedMax = maxAlto(dsVol) * 1.06;
       oVol.scales.y.title = { display: true, text: 'Volumes no mês', color: '#8b93a3' };
       oVol.interaction = { mode: 'index', intersect: false };
       oVol.plugins.tooltip = { callbacks: {
-        label: (c) => c.parsed.y ? `${c.dataset.label}: ${expFmtNum(c.parsed.y)}` : null,
-        footer: (it) => { const k = chaves[it[0].dataIndex]; const tot = Object.values(porMes[k].pessoas).reduce((a, p) => a + p.vol, 0); return `Total do mês: ${expFmtNum(tot)} · ${porMes[k].dias.size} dia(s) com listas`; },
+        label: (c) => { if (!c.parsed.y) return null; const mt = c.dataset.metaBarra && c.dataset.metaBarra[c.dataIndex]; return `${c.dataset.label}: ${expFmtNum(c.parsed.y)}${mt ? ` (meta ${expFmtNum(mt)})` : ''}`; },
+        footer: (it) => { const k = chaves[it[0].dataIndex]; const tot = Object.values(porMes[k].pessoas).reduce((a, p) => a + p.vol, 0); return `Total da equipe no mês: ${expFmtNum(tot)} · ${porMes[k].dias.size} dia(s) com listas`; },
       } };
-      desenharGrafico('exp-eq-chart-mes-vol', { type: 'bar', data: { labels: rot, datasets: dsVol }, options: oVol });
+      desenharGrafico('exp-eq-chart-mes-vol', { type: 'bar', data: { labels: rot, datasets: dsVol }, options: oVol, plugins: [metaNasColunas] });
 
       const vhPessoa = (k, nm) => { const p = porMes[k].pessoas[nm]; return p && p.t > 0 ? Math.round(p.vct / (p.t / 3600) * 10) / 10 : null; };
-      const dsVH = top.map(nm => ({ type: 'line', label: nm, data: chaves.map(k => vhPessoa(k, nm)), borderColor: corPessoa(nm), backgroundColor: corPessoa(nm), borderWidth: 2, pointRadius: 3, pointHoverRadius: 5, tension: 0, fill: false, spanGaps: true }));
-      if (chaves.some(k => porMes[k].vhTempo > 0)) dsVH.push({
-        type: 'line', label: 'Meta volumes/hora', data: chaves.map(k => porMes[k].vhTempo > 0 ? Math.round(porMes[k].vhPeso / porMes[k].vhTempo * 10) / 10 : null),
-        showLine: false, borderColor: '#111827', backgroundColor: '#111827', pointStyle: 'line', pointBorderColor: '#111827', pointBorderWidth: 3, pointRadius: 16, pointHoverRadius: 0, order: -1,
-      });
+      const dsVH = top.map(nm => ({ type: 'bar', label: nm, data: chaves.map(k => vhPessoa(k, nm)), metaBarra: chaves.map(k => porMes[k].pessoas[nm] ? porMes[k].pessoas[nm].metaVH : null), backgroundColor: corPessoa(nm), maxBarThickness: 40, order: 1 }));
+      if (dsVH.some(d => d.metaBarra.some(v => v))) dsVH.push(legendaMeta('Meta volumes/hora (traço em cada coluna)'));
       const oVH = baseOptions((v) => expFmtNum(v, 1));
-      oVH.scales.y.beginAtZero = true;
+      oVH.scales.y.beginAtZero = true; oVH.scales.y.suggestedMax = maxAlto(dsVH) * 1.06;
       oVH.scales.y.title = { display: true, text: 'Volumes por hora', color: '#8b93a3' };
       oVH.interaction = { mode: 'index', intersect: false };
-      oVH.plugins.tooltip = { callbacks: { label: (c) => c.parsed.y === null || c.parsed.y === undefined ? null : `${c.dataset.label}: ${expFmtNum(c.parsed.y, 1)}` } };
-      desenharGrafico('exp-eq-chart-mes-volhora', { type: 'line', data: { labels: rot, datasets: dsVH }, options: oVH });
+      oVH.plugins.tooltip = { callbacks: { label: (c) => { if (c.parsed.y === null || c.parsed.y === undefined) return null; const mt = c.dataset.metaBarra && c.dataset.metaBarra[c.dataIndex]; return `${c.dataset.label}: ${expFmtNum(c.parsed.y, 1)}${mt ? ` (meta ${expFmtNum(mt, 1)})` : ''}`; } } };
+      desenharGrafico('exp-eq-chart-mes-volhora', { type: 'bar', data: { labels: rot, datasets: dsVH }, options: oVH, plugins: [metaNasColunas] });
     }
 
     // ---- gráficos ----

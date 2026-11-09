@@ -588,7 +588,7 @@
         </div>
 
         <div class="panel rounded-xl p-5">
-          <div class="relative flex items-center gap-2 mb-3"><p class="text-sm font-semibold">Consolidado mensal</p><span class="info-dica"><button type="button" class="info-dica-btn" aria-label="Como esta tabela é calculada" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como esta tabela é calculada</p><p class="dim">Operação inteira, últimos 12 meses. Só listas <b>concluídas</b>, no dia da conclusão (até 00:29 conta no dia anterior). <b>Não depende</b> dos filtros de Turno, Separador e do período De/Até. Meses sem lista não aparecem; o mês atual é parcial.</p><p><b>Dias com envio:</b> dias do mês com pelo menos uma lista concluída.</p><p><b>NFs únicas:</b> notas fiscais diferentes das listas concluídas do mês. Cada número conta uma vez no mês, mesmo que apareça em mais de uma lista.</p><p><b>Volumes:</b> soma dos volumes das listas concluídas do mês.</p><p><b>NFs/dia</b> e <b>Volumes/dia:</b> NFs únicas e volumes ÷ dias com envio.</p><p><b>Total:</b> soma dos meses. As NFs únicas do total contam cada nota uma vez só no período todo, e as médias por dia usam todos os dias com envio.</p><p class="dim">Dias salvos antes desta tabela existir ainda não têm as notas guardadas: aparece um aviso com o botão "Calcular agora", e a coluna de NFs fica "–" nesses meses até lá.</p></div></div></span></div>
+          <div class="relative flex items-center gap-2 mb-3"><p class="text-sm font-semibold">Consolidado mensal</p><span class="info-dica"><button type="button" class="info-dica-btn" aria-label="Como esta tabela é calculada" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como esta tabela é calculada</p><p class="dim">Operação inteira, um ano por vez: o ano atual por padrão, ou o que você escolher na lista "Ano". Só listas <b>concluídas</b>, no dia da conclusão (até 00:29 conta no dia anterior). <b>Não depende</b> dos filtros de Turno, Separador e do período De/Até. Meses sem lista não aparecem; o mês atual é parcial.</p><p><b>Dias com envio:</b> dias do mês com pelo menos uma lista concluída.</p><p><b>NFs únicas:</b> notas fiscais diferentes das listas concluídas do mês. Cada número conta uma vez no mês, mesmo que apareça em mais de uma lista.</p><p><b>Volumes:</b> soma dos volumes das listas concluídas do mês.</p><p><b>NFs/dia</b> e <b>Volumes/dia:</b> NFs únicas e volumes ÷ dias com envio.</p><p><b>Total:</b> soma dos meses. As NFs únicas do total contam cada nota uma vez só no ano todo, e as médias por dia usam todos os dias com envio.</p><p class="dim">Dias salvos antes desta tabela existir ainda não têm as notas guardadas: aparece um aviso com o botão "Calcular agora", e a coluna de NFs fica "–" nesses meses até lá.</p></div></div></span><label for="exp-consol-ano" class="ml-auto text-xs text-[var(--text-dim)]">Ano</label><select id="exp-consol-ano" class="rounded-lg px-3 py-1.5 text-sm"></select></div>
           <div id="exp-consol-aviso" class="hidden mb-3 rounded-lg border border-[var(--warn)]/50 p-3 text-xs flex flex-wrap items-center gap-3">
             <span id="exp-consol-aviso-texto"></span>
             <button id="exp-consol-calcular" type="button" class="bg-[var(--accent)] text-black font-semibold rounded-lg px-3 py-1.5 hover:brightness-110 transition">Calcular agora</button>
@@ -2206,7 +2206,7 @@ function montarApp(){
   let expCompletandoNfs = false;
   async function expCompletarNfsDosDias() {
     if (expCompletandoNfs) return;
-    const dias = expUlt12Dias().filter(d => d.listas > 0 && !Array.isArray(d.nfs)).map(d => d.data);
+    const dias = expConsolDias().filter(d => d.listas > 0 && !Array.isArray(d.nfs)).map(d => d.data);
     if (!dias.length) return;
     expCompletandoNfs = true;
     const btn = $('#exp-consol-calcular');
@@ -2236,6 +2236,7 @@ function montarApp(){
     const ini = `${a}-${String(m).padStart(2, '0')}-01`;
     return (expHistMensalDias || []).filter(d => d.data >= ini);
   }
+  function expConsolDias() { const a = $('#exp-consol-ano').value; return (expHistMensalDias || []).filter(d => d.data.startsWith(a)); }
   async function expCarregarHistMensal() {
     try {
       const hoje = expHojeISO();
@@ -2247,6 +2248,7 @@ function montarApp(){
   // trocar turno ou separador só refiltra o que já foi buscado
   $('#exp-dash-separador').addEventListener('change', () => { if (expUltimaBusca) expRenderDashboard(); });
   $('#exp-mes-ano').addEventListener('change', () => { if (expUltimaBusca) expRenderDashboard(); });
+  $('#exp-consol-ano').addEventListener('change', () => { if (expUltimaBusca) expRenderDashboard(); });
   $('#exp-dash-turno').addEventListener('change', () => { if (expUltimaBusca) { expPopularSeparadores(); expRenderDashboard(); } });
 
   // separadores com lista no período (e do turno escolhido)
@@ -2509,7 +2511,12 @@ function montarApp(){
     {
       const NOMES_MES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
       const mesesC = {}; const nfsTotal = new Set(); let faltam = 0;
-      for (const d of expUlt12Dias()) {
+      // lista de ano: padrão o ano atual (ou o mais recente com dados); mantém a escolha nas atualizações
+      const anosC = [...new Set((expHistMensalDias || []).filter(d => d.listas > 0).map(d => d.data.slice(0, 4)))].sort();
+      const selC = $('#exp-consol-ano'), prevC = selC.value, anoAtualC = expHojeISO().slice(0, 4);
+      selC.innerHTML = anosC.map(a => `<option value="${a}">${a}</option>`).join('');
+      selC.value = anosC.includes(prevC) ? prevC : (anosC.includes(anoAtualC) ? anoAtualC : (anosC[anosC.length - 1] || ''));
+      for (const d of expConsolDias()) {
         if (!(d.listas > 0)) continue;
         const m = (mesesC[d.data.slice(0, 7)] ||= { dias: 0, volumes: 0, nfs: new Set(), semNfs: 0 });
         m.dias++; m.volumes += d.volumes || 0;
@@ -2519,7 +2526,7 @@ function montarApp(){
       const fN = (v, c) => expFmtNum(v, c);
       const linhas = ks.map(k => {
         const m = mesesC[k], ok = m.semNfs === 0;
-        return `<tr class="border-b border-[var(--border)]/50"><td class="py-2 pr-4">${NOMES_MES[Number(k.slice(5)) - 1]}${k.slice(0, 4) === ks[ks.length - 1].slice(0, 4) ? '' : '/' + k.slice(2, 4)}${k === expDiaAtual().slice(0, 7) ? ' <span class="text-[10px] text-[var(--text-dim)]">(parcial)</span>' : ''}</td>
+        return `<tr class="border-b border-[var(--border)]/50"><td class="py-2 pr-4">${NOMES_MES[Number(k.slice(5)) - 1]}${k === expDiaAtual().slice(0, 7) ? ' <span class="text-[10px] text-[var(--text-dim)]">(parcial)</span>' : ''}</td>
           <td class="py-2 px-3 font-mono text-right">${fN(m.dias)}</td>
           <td class="py-2 px-3 font-mono text-right">${ok ? fN(m.nfs.size) : '–'}</td>
           <td class="py-2 px-3 font-mono text-right">${fN(m.volumes)}</td>
@@ -2527,14 +2534,15 @@ function montarApp(){
           <td class="py-2 pl-3 font-mono text-right">${fN(m.volumes / m.dias, 1)}</td></tr>`;
       });
       const diasT = ks.reduce((a, k) => a + mesesC[k].dias, 0), volT = ks.reduce((a, k) => a + mesesC[k].volumes, 0);
-      const rotT = ks.length ? `Total ${MESES_ABREV[Number(ks[0].slice(5)) - 1]}/${ks[0].slice(2, 4)}–${MESES_ABREV[Number(ks[ks.length - 1].slice(5)) - 1]}/${ks[ks.length - 1].slice(2, 4)}` : 'Total';
+      const mAb = (k) => MESES_ABREV[Number(k.slice(5)) - 1];
+      const rotT = ks.length ? (ks.length === 1 ? `Total ${mAb(ks[0])}/${ks[0].slice(2, 4)}` : `Total ${mAb(ks[0])}–${mAb(ks[ks.length - 1])}/${ks[0].slice(2, 4)}`) : 'Total';
       $('#exp-consol-corpo').innerHTML = ks.length ? linhas.join('') + `<tr class="border-t border-[var(--border)] font-semibold"><td class="py-2 pr-4">${rotT}</td>
           <td class="py-2 px-3 font-mono text-right">${fN(diasT)}</td>
           <td class="py-2 px-3 font-mono text-right">${faltam ? '–' : fN(nfsTotal.size)}</td>
           <td class="py-2 px-3 font-mono text-right">${fN(volT)}</td>
           <td class="py-2 px-3 font-mono text-right">${faltam ? '–' : fN(nfsTotal.size / diasT, 1)}</td>
           <td class="py-2 pl-3 font-mono text-right">${fN(volT / diasT, 1)}</td></tr>`
-        : '<tr><td colspan="6" class="py-4 text-center text-[var(--text-dim)]">Sem listas concluídas nos últimos 12 meses.</td></tr>';
+        : '<tr><td colspan="6" class="py-4 text-center text-[var(--text-dim)]">Sem listas concluídas neste ano.</td></tr>';
       $('#exp-consol-aviso').classList.toggle('hidden', !faltam);
       $('#exp-consol-aviso-texto').textContent = `${fN(faltam)} dia(s) foram salvos antes desta tabela existir e ainda não têm as notas fiscais guardadas — por isso as colunas de NFs aparecem com "–". Clique para calcular a partir das listas já salvas (não precisa importar de novo).`;
     }

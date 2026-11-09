@@ -570,13 +570,19 @@
           </div>
         </div>
 
+        <div class="flex flex-wrap items-center gap-3">
+          <p class="text-sm font-semibold">Histórico mensal</p>
+          <label for="exp-mes-ano" class="text-xs text-[var(--text-dim)]">Ano</label>
+          <select id="exp-mes-ano" class="rounded-lg px-3 py-1.5 text-sm"><option value="todos">Todos os anos</option></select>
+          <span class="text-xs text-[var(--text-dim)]">Em "Todos os anos", o mesmo mês de anos diferentes fica lado a lado.</span>
+        </div>
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
           <div class="panel rounded-xl p-5">
-            <div class="relative flex items-center gap-2 mb-3"><p class="text-sm font-semibold">Histórico mensal de separação vs meta</p><span class="info-dica"><button type="button" class="info-dica-btn" aria-label="Como este gráfico é calculado" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como este gráfico é calculado</p><p class="dim">Cada barra é um <b>mês</b> (últimos 12), somando só listas <b>concluídas</b>, no dia da conclusão (até 00:29 conta no dia anterior). Valem os filtros de Turno e Separador, mas <b>não o período</b> De/Até. Meses sem lista não aparecem; o mês atual é parcial.</p><div class="serie" style="color:#3b82f6"><i class="barra"></i><div style="color:var(--text)"><b>Volumes separados</b>: soma dos volumes das listas concluídas do mês.</div></div><div class="serie" style="color:#ef4444"><i class="trac"></i><div style="color:var(--text)"><b>Meta (quadro previsto)</b>: soma, dia a dia, de pessoas previstas × meta de volumes/hora × jornada (por turno). Só os dias com lista entram. Com um separador escolhido, vira "Meta volumes/mês": a meta de uma pessoa do turno dele.</div></div><div class="serie" style="color:#64748b"><i class="trac"></i><div style="color:var(--text)"><b>Meta (com quem separou)</b>: só com "Todos". Soma, dia a dia, de meta/hora × jornada dos separadores que concluíram lista. Quem não é separador conta nos volumes, mas não na meta.</div></div><p class="dim">A meta de cada mês aparece como um traço sobre a barra. Passe o mouse para ver quantos dias com lista o mês teve.</p></div></div></span></div>
+            <div class="relative flex items-center gap-2 mb-3"><p class="text-sm font-semibold">Histórico mensal de separação vs meta</p><span class="info-dica"><button type="button" class="info-dica-btn" aria-label="Como este gráfico é calculado" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como este gráfico é calculado</p><p class="dim">Cada grupo é um <b>mês do calendário</b> e cada cor é um <b>ano</b>: o mesmo mês de anos diferentes fica lado a lado, para ver a diferença. A lista "Ano" mostra um ano só (padrão: todos). Soma só listas <b>concluídas</b>, no dia da conclusão (até 00:29 conta no dia anterior). Valem os filtros de Turno e Separador, mas <b>não o período</b> De/Até. Meses sem lista não aparecem; o mês atual é parcial.</p><div class="serie" style="color:#3b82f6"><i class="barra"></i><div style="color:var(--text)"><b>Volumes separados</b> (uma coluna por ano): soma dos volumes das listas concluídas do mês.</div></div><div class="serie" style="color:#ef4444"><i class="trac"></i><div style="color:var(--text)"><b>Meta (quadro previsto)</b>, traço sobre cada coluna: soma, dia a dia, de pessoas previstas × meta de volumes/hora × jornada (por turno). Só os dias com lista entram. Com um separador escolhido, vira "Meta volumes/mês": a meta de uma pessoa do turno dele.</div></div><div class="serie" style="color:#64748b"><i class="trac"></i><div style="color:var(--text)"><b>Meta (com quem separou)</b>, traço sobre cada coluna: só com "Todos". Soma, dia a dia, de meta/hora × jornada dos separadores que concluíram lista. Quem não é separador conta nos volumes, mas não na meta.</div></div><p class="dim">Passe o mouse num mês para ver, de cada ano, os volumes, os dias com lista e as metas.</p></div></div></span></div>
             <div class="chart-box"><canvas id="exp-chart-mes-vol" height="220"></canvas></div>
           </div>
           <div class="panel rounded-xl p-5">
-            <div class="relative flex items-center gap-2 mb-3"><p class="text-sm font-semibold">Histórico mensal de volumes por hora vs meta</p><span class="info-dica"><button type="button" class="info-dica-btn" aria-label="Como este gráfico é calculado" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como este gráfico é calculado</p><p class="dim">Cada barra é um <b>mês</b> (últimos 12), somando só listas <b>concluídas</b>, no dia da conclusão (até 00:29 conta no dia anterior). Valem os filtros de Turno e Separador, mas <b>não o período</b> De/Até. Meses sem lista não aparecem; o mês atual é parcial.</p><div class="serie" style="color:#f5a623"><i class="barra"></i><div style="color:var(--text)"><b>Volumes/hora</b> = volumes do mês ÷ soma do tempo de execução das listas do mês, em horas. É o tempo de cada lista somado, não hora de relógio. Lista sem tempo fica fora da conta.</div></div><div class="serie" style="color:#b45309"><i class="trac"></i><div style="color:var(--text)"><b>Meta volumes/hora</b>: meta por hora do turno. Com turnos diferentes, é a média ponderada pelas horas de execução.</div></div><p class="dim">Barra abaixo da linha = rendimento por hora abaixo da meta, independentemente de quantas pessoas trabalharam.</p></div></div></span></div>
+            <div class="relative flex items-center gap-2 mb-3"><p class="text-sm font-semibold">Histórico mensal de volumes por hora vs meta</p><span class="info-dica"><button type="button" class="info-dica-btn" aria-label="Como este gráfico é calculado" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como este gráfico é calculado</p><p class="dim">Cada grupo é um <b>mês do calendário</b> e cada cor é um <b>ano</b>: o mesmo mês de anos diferentes fica lado a lado, para ver a diferença. A lista "Ano" mostra um ano só (padrão: todos). Soma só listas <b>concluídas</b>, no dia da conclusão (até 00:29 conta no dia anterior). Valem os filtros de Turno e Separador, mas <b>não o período</b> De/Até. Meses sem lista não aparecem; o mês atual é parcial.</p><div class="serie" style="color:#f5a623"><i class="barra"></i><div style="color:var(--text)"><b>Volumes/hora</b> (uma coluna por ano) = volumes do mês ÷ soma do tempo de execução das listas do mês, em horas. É o tempo de cada lista somado, não hora de relógio. Lista sem tempo fica fora da conta.</div></div><div class="serie" style="color:#111827"><i class="trac"></i><div style="color:var(--text)"><b>Meta volumes/hora</b>, traço sobre cada coluna: meta por hora do turno. Com turnos diferentes, é a média ponderada pelas horas de execução.</div></div><p class="dim">Coluna abaixo do traço = rendimento por hora abaixo da meta, independentemente de quantas pessoas trabalharam.</p></div></div></span></div>
             <div class="chart-box"><canvas id="exp-chart-mes-volhora" height="220"></canvas></div>
           </div>
         </div>
@@ -1497,7 +1503,7 @@ function montarApp(){
   $$('.exp-btn-logout').forEach(b => b.addEventListener('click', () => $('#btn-logout').click()));
   $('#exp-btn-buscar').addEventListener('click', () => expBuscarDashboard());
   let expDashJaBuscou = false;
-  let expHistMensalDias = null; // dias dos últimos 12 meses (histórico mensal); recarrega após importar
+  let expHistMensalDias = null; // todos os dias já salvos (histórico mensal); recarrega após importar
   let expPrecisaRerender = false;
   let expEqBuscou = false;
   let expEqPrecisaRerender = false;
@@ -2086,6 +2092,26 @@ function montarApp(){
   });
 
   // ---------- Dashboard ----------
+  // traço de meta sobre cada coluna: dataset.metasBarra = [{ v: [valor por coluna], cor }]
+  const expMetasNasColunas = {
+    id: 'expMetasNasColunas',
+    afterDatasetsDraw(chart) {
+      const { ctx, scales: { y } } = chart;
+      chart.data.datasets.forEach((ds, di) => {
+        if (!ds.metasBarra || !chart.isDatasetVisible(di)) return;
+        chart.getDatasetMeta(di).data.forEach((bar, i) => {
+          if (ds.data[i] === null || ds.data[i] === undefined) return;
+          ds.metasBarra.forEach(mt => {
+            const v = mt.v[i];
+            if (v === null || v === undefined) return;
+            const yy = y.getPixelForValue(v);
+            ctx.save(); ctx.strokeStyle = mt.cor; ctx.lineWidth = 2.5; ctx.beginPath();
+            ctx.moveTo(bar.x - bar.width / 2 - 2, yy); ctx.lineTo(bar.x + bar.width / 2 + 2, yy); ctx.stroke(); ctx.restore();
+          });
+        });
+      });
+    }
+  };
   // número de volumes dentro do topo da barra (fora dela, se a barra for baixa)
   const expRotulosVolumes = {
     id: 'expRotulosVolumes',
@@ -2111,6 +2137,17 @@ function montarApp(){
         chart.getDatasetMeta(di).data.forEach((bar, i) => {
           const valor = dataset.data[i];
           if (valor === null || valor === undefined) return;
+          if (bar.width < 40) { // coluna estreita (anos lado a lado): número na vertical, dentro da coluna se couber
+            const txt = expFmtNum(valor, dataset.rotuloCasas || 0), alt = bar.base - bar.y;
+            ctx.save();
+            ctx.font = '600 10px Inter, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+            const cabe = alt > ctx.measureText(txt).width + 10;
+            ctx.fillStyle = cabe ? '#ffffff' : '#1f2430';
+            ctx.translate(bar.x, cabe ? bar.base - 6 : bar.y - 4); ctx.rotate(-Math.PI / 2);
+            ctx.fillText(txt, 0, 0);
+            ctx.restore();
+            return;
+          }
           const dentro = (bar.base - bar.y) > 22;
           ctx.save();
           ctx.fillStyle = dentro ? '#ffffff' : '#1f2430';
@@ -2169,7 +2206,7 @@ function montarApp(){
   let expCompletandoNfs = false;
   async function expCompletarNfsDosDias() {
     if (expCompletandoNfs) return;
-    const dias = (expHistMensalDias || []).filter(d => d.listas > 0 && !Array.isArray(d.nfs)).map(d => d.data);
+    const dias = expUlt12Dias().filter(d => d.listas > 0 && !Array.isArray(d.nfs)).map(d => d.data);
     if (!dias.length) return;
     expCompletandoNfs = true;
     const btn = $('#exp-consol-calcular');
@@ -2191,18 +2228,25 @@ function montarApp(){
     }
   }
   $('#exp-consol-calcular').addEventListener('click', () => expCompletarNfsDosDias());
-  // últimos 12 meses (do 1º dia do mês de 11 meses atrás até o fim do mês atual), pro histórico mensal
+  // todo o histórico (do início até o fim do mês atual): o histórico mensal compara o mesmo mês entre anos.
+  // Consolidado mensal e Dashboard Equipe usam só os últimos 12 meses (expUlt12Dias).
+  function expUlt12Dias() {
+    const hoje = expHojeISO(); let [a, m] = hoje.split('-').map(Number);
+    m -= 11; while (m < 1) { m += 12; a--; }
+    const ini = `${a}-${String(m).padStart(2, '0')}-01`;
+    return (expHistMensalDias || []).filter(d => d.data >= ini);
+  }
   async function expCarregarHistMensal() {
     try {
-      const hoje = expHojeISO(); let [a, m] = hoje.split('-').map(Number);
-      m -= 11; while (m < 1) { m += 12; a--; }
-      const ini = `${a}-${String(m).padStart(2, '0')}-01`, fimMes = `${hoje.slice(0, 7)}-31`;
+      const hoje = expHojeISO();
+      const ini = '2000-01-01', fimMes = `${hoje.slice(0, 7)}-31`;
       const snap = await getDocs(query(collection(db, 'expedicao_dias'), where('data', '>=', ini), where('data', '<=', fimMes)));
       return snap.docs.map(d => d.data()).filter(d => d && d.data && d.data >= ini && d.data <= fimMes);
     } catch (err) { console.error(err); return null; } // sem histórico, o resto do dashboard continua
   }
   // trocar turno ou separador só refiltra o que já foi buscado
   $('#exp-dash-separador').addEventListener('change', () => { if (expUltimaBusca) expRenderDashboard(); });
+  $('#exp-mes-ano').addEventListener('change', () => { if (expUltimaBusca) expRenderDashboard(); });
   $('#exp-dash-turno').addEventListener('change', () => { if (expUltimaBusca) { expPopularSeparadores(); expRenderDashboard(); } });
 
   // separadores com lista no período (e do turno escolhido)
@@ -2387,17 +2431,19 @@ function montarApp(){
       pointStyle: 'line', pointRadius: dias.length === 1 ? 36 : 0, pointBorderWidth: 2, pointHoverRadius: 0,
       fill: false, tension: 0, spanGaps: false, order: -1,
     });
-    // ---- histórico mensal (últimos 12 meses; vale turno/separador, não o período) ----
+    // ---- histórico mensal (todos os anos; vale turno/separador, não o período): meses do calendário, um ano por cor ----
     const MESES_ABREV = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+    const MESES_NOME = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
     const porMes = {};
     for (const d of (expHistMensalDias || [])) { const dm = montarDia(d); if (dm) (porMes[d.data.slice(0, 7)] ||= []).push(dm); }
+    const hojeMes = expHojeISO().slice(0, 7);
     const meses = Object.keys(porMes).sort().map(k => {
       const ds = porMes[k];
       const vol = soma(ds, 'volumes'), vct = soma(ds, 'volumesComTempo'), tseg = soma(ds, 'tempoExecSeg');
       const comVH = ds.filter(d => d.metaVolHora && d.tempoExecSeg > 0);
       const tVH = soma(comVH, 'tempoExecSeg');
       return {
-        rotulo: `${MESES_ABREV[Number(k.slice(5)) - 1]}/${k.slice(2, 4)}`, dias: ds.length, parcial: k === expHojeISO().slice(0, 7),
+        ano: k.slice(0, 4), mes: Number(k.slice(5)), dias: ds.length, parcial: k === hojeMes,
         volumes: vol,
         vh: tseg > 0 ? vct / (tseg / 3600) : null,
         metaPrev: ds.some(d => d.metaPrevVolDia) ? soma(ds, 'metaPrevVolDia') : null,
@@ -2405,49 +2451,65 @@ function montarApp(){
         metaVH: tVH > 0 ? comVH.reduce((a, d) => a + d.metaVolHora * d.tempoExecSeg, 0) / tVH : null,
       };
     });
-    const opMes = (tituloEixo, casas) => {
+    // lista de ano (mantém a escolha enquanto o ano existir; padrão: todos)
+    const anosDisp = [...new Set(meses.map(m => m.ano))].sort();
+    {
+      const sel = $('#exp-mes-ano'), atual = sel.value;
+      sel.innerHTML = '<option value="todos">Todos os anos</option>' + anosDisp.map(a => `<option value="${a}">${a}</option>`).join('');
+      sel.value = anosDisp.includes(atual) ? atual : 'todos';
+    }
+    const anoSel = $('#exp-mes-ano').value;
+    const anosUsar = anoSel === 'todos' ? anosDisp : [anoSel];
+    const CORES_ANOS = ['#3b82f6', '#f5a623', '#14b8a6', '#a855f7', '#ec4899', '#84cc16']; // o ano mais recente é sempre o azul
+    const corAno = (ano) => CORES_ANOS[(anosDisp.length - 1 - anosDisp.indexOf(ano)) % CORES_ANOS.length];
+    const mesesNum = [...new Set(meses.filter(m => anosUsar.includes(m.ano)).map(m => m.mes))].sort((a, b) => a - b);
+    const mesDe = (ano, n) => meses.find(m => m.ano === ano && m.mes === n);
+    const legendaMeta = (rotulo, cor) => ({ type: 'line', label: rotulo, data: [], showLine: false, borderColor: cor, backgroundColor: cor, pointStyle: 'line', pointBorderColor: cor, pointBorderWidth: 3, pointRadius: 8 });
+    const opMes = (tituloEixo, casas, linhasMeta) => {
       const o = opcoes(tituloEixo, casas);
-      o.plugins.tooltip.callbacks.footer = (it) => { const m = meses[it[0].dataIndex]; return m ? `${m.dias} dia(s) com listas${m.parcial ? ' · mês em andamento' : ''}` : ''; };
+      o.interaction = { mode: 'index', intersect: false };
+      o.plugins.tooltip = { callbacks: {
+        title: (it) => MESES_NOME[mesesNum[it[0].dataIndex] - 1],
+        label: (c) => c.parsed.y === null || c.parsed.y === undefined ? null : `${c.dataset.label}: ${expFmtNum(c.parsed.y, casas)}`,
+        afterLabel: (c) => {
+          const m = mesDe(c.dataset.label, mesesNum[c.dataIndex]); if (!m) return [];
+          return [`${m.dias} dia(s) com listas${m.parcial ? ' · mês em andamento' : ''}`, ...linhasMeta(m)];
+        },
+      } };
       return o;
     };
-    const rotMes = meses.map(m => m.rotulo + (m.parcial ? '*' : ''));
-    // meta do mês = um traço sobre a barra (cada mês tem a sua; ligar os meses com linha enganaria)
-    const tracoMes = (label, data, cor) => ({
-      type: 'line', label, data, yAxisID: 'y', showLine: false, borderColor: cor, backgroundColor: cor, pointStyle: 'line', pointBorderColor: cor, pointBorderWidth: 3,
-      pointRadius: (c) => { const m = c.chart.getDatasetMeta(0).data[c.dataIndex]; return m ? Math.min(34, Math.max(8, m.width / 2 + 4)) : 18; },
-      pointHoverRadius: 0, order: -1,
-    });
+    const altoMax = (ds) => Math.max(0, ...ds.flatMap(d => [...d.data, ...(d.metasBarra || []).flatMap(mt => mt.v)].filter(v => typeof v === 'number')));
+    const estrutura = (rotulo, valorDe, casasRot, metas) => anosUsar.map(ano => ({
+      type: 'bar', label: ano, data: mesesNum.map(n => { const m = mesDe(ano, n); return m ? valorDe(m) : null; }),
+      metasBarra: metas.map(mt => ({ cor: mt.cor, v: mesesNum.map(n => { const m = mesDe(ano, n); return m ? mt.de(m) : null; }) })),
+      yAxisID: 'y', backgroundColor: corAno(ano), borderRadius: 4, maxBarThickness: 44, order: 1, rotuloCasas: casasRot,
+    }));
+    const metasVol = [{ cor: '#ef4444', rot: todosSep ? 'Meta (quadro previsto)' : 'Meta volumes/mês', de: m => arred(m.metaPrev) }]
+      .concat(todosSep ? [{ cor: '#64748b', rot: 'Meta (com quem separou)', de: m => arred(m.metaAjust) }] : []);
+    const dsVolMes = estrutura('', m => m.volumes, 0, metasVol);
+    const metasVolUsadas = metasVol.filter(mt => dsVolMes.some(d => d.metasBarra.some(x => x.cor === mt.cor && x.v.some(v => v))));
+    metasVolUsadas.forEach(mt => dsVolMes.push(legendaMeta(mt.rot + ' (traço em cada coluna)', mt.cor)));
+    const oVolMes = opMes('Volumes no mês', 0, (m) => metasVolUsadas.map(mt => `${mt.rot}: ${expFmtNum(mt.de(m))}`));
+    oVolMes.scales.y.suggestedMax = altoMax(dsVolMes) * 1.06;
     desenharGrafico('exp-chart-mes-vol', {
-      type: 'bar',
-      data: {
-        labels: rotMes,
-        datasets: [
-          { type: 'bar', label: 'Volumes separados', data: meses.map(m => m.volumes), yAxisID: 'y', backgroundColor: '#3b82f6', borderRadius: 4, maxBarThickness: 56, order: 1 },
-          ...(meses.some(m => m.metaPrev) ? [tracoMes(todosSep ? 'Meta (quadro previsto)' : 'Meta volumes/mês', meses.map(m => arred(m.metaPrev)), '#ef4444')] : []),
-          ...(todosSep && meses.some(m => m.metaAjust) ? [tracoMes('Meta (com quem separou)', meses.map(m => arred(m.metaAjust)), '#64748b')] : []),
-        ],
-      },
-      options: opMes('Volumes no mês', 0),
-      plugins: [expRotulosVolumes],
+      type: 'bar', data: { labels: mesesNum.map(n => MESES_ABREV[n - 1]), datasets: dsVolMes },
+      options: oVolMes, plugins: [expRotulosVolumes, expMetasNasColunas],
     });
+    const metasVH = [{ cor: '#111827', rot: 'Meta volumes/hora', de: m => arred(m.metaVH) }];
+    const dsVHMes = estrutura('', m => arred(m.vh), 1, metasVH);
+    if (dsVHMes.some(d => d.metasBarra[0].v.some(v => v))) dsVHMes.push(legendaMeta('Meta volumes/hora (traço em cada coluna)', '#111827'));
+    const oVHMes = opMes('Volumes por hora', 1, (m) => m.metaVH ? [`Meta volumes/hora: ${expFmtNum(arred(m.metaVH), 1)}`] : []);
+    oVHMes.scales.y.suggestedMax = altoMax(dsVHMes) * 1.06;
     desenharGrafico('exp-chart-mes-volhora', {
-      type: 'bar',
-      data: {
-        labels: rotMes,
-        datasets: [
-          { type: 'bar', label: 'Volumes/hora', data: meses.map(m => arred(m.vh)), yAxisID: 'y', backgroundColor: '#f5a623', borderRadius: 4, maxBarThickness: 56, order: 1, rotuloCasas: 1 },
-          ...(meses.some(m => m.metaVH) ? [tracoMes('Meta volumes/hora', meses.map(m => arred(m.metaVH)), '#b45309')] : []),
-        ],
-      },
-      options: opMes('Volumes por hora', 1),
-      plugins: [expRotulosVolumes],
+      type: 'bar', data: { labels: mesesNum.map(n => MESES_ABREV[n - 1]), datasets: dsVHMes },
+      options: oVHMes, plugins: [expRotulosVolumes, expMetasNasColunas],
     });
 
     // ---- consolidado mensal (operação inteira, últimos 12 meses) ----
     {
       const NOMES_MES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
       const mesesC = {}; const nfsTotal = new Set(); let faltam = 0;
-      for (const d of (expHistMensalDias || [])) {
+      for (const d of expUlt12Dias()) {
         if (!(d.listas > 0)) continue;
         const m = (mesesC[d.data.slice(0, 7)] ||= { dias: 0, volumes: 0, nfs: new Set(), semNfs: 0 });
         m.dias++; m.volumes += d.volumes || 0;
@@ -2673,7 +2735,7 @@ function montarApp(){
     if (!soHoje && expHistMensalDias) {
       const MESES_ABREV = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
       const porMes = {};
-      for (const d of expHistMensalDias) {
+      for (const d of expUlt12Dias()) {
         for (const [nm, r] of Object.entries(d.porResponsavel || {})) {
           if (!r || !(r.listas > 0)) continue;
           if (turno !== 'todos' && String(expTurnoDe(nm)) !== turno) continue;

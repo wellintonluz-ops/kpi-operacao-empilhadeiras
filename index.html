@@ -1754,6 +1754,18 @@ function montarApp(){
       btn.disabled = false;
     }
   });
+  // nome abreviado nos gráficos: primeiro nome + inicial do sobrenome ("Carlos S."); se duas pessoas ficarem iguais,
+  // mostra as iniciais de todos os sobrenomes; o nome completo aparece ao passar o mouse
+  function expNomesCurtos(nomes) {
+    const conector = /^(d[aeo]s?|e)$/i, ini = (x) => x[0].toUpperCase() + '.';
+    const formas = (nome) => {
+      const p = String(nome).trim().split(/\s+/), sob = p.slice(1).filter(x => !conector.test(x));
+      if (!sob.length) return [nome, nome];
+      return [`${p[0]} ${ini(sob[sob.length - 1])}`, `${p[0]} ${sob.map(ini).join(' ')}`];
+    };
+    const f = nomes.map(formas), cont = (i, k) => f.filter(x => x[k] === f[i][k]).length;
+    return nomes.map((nome, i) => cont(i, 0) === 1 ? f[i][0] : cont(i, 1) === 1 ? f[i][1] : nome);
+  }
   const expEsc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
   const expNorm = (s) => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
   const expFmtNum = (v, casas = 0) => (v === null || v === undefined || !isFinite(v)) ? '–'
@@ -2890,11 +2902,12 @@ function montarApp(){
     }
 
     // ---- gráficos ----
-    const nomes = lista.map(p => p.nome.split(' '));
+    const nomes = expNomesCurtos(lista.map(p => p.nome));
     const opcoes = (tituloEixo, casas, base = lista) => {
       const o = baseOptions((v) => expFmtNum(v, casas));
       o.scales.y.beginAtZero = true;
       o.scales.y.title = { display: true, text: tituloEixo, color: '#8b93a3' };
+      o.interaction = { mode: 'index', intersect: false }; // passar o mouse na coluna (mesmo pequena) mostra o nome completo
       o.plugins.tooltip = { callbacks: { title: (it) => base[it[0].dataIndex].nome, label: (c) => `${c.dataset.label}: ${expFmtNum(c.parsed.y, casas)}` } };
       return o;
     };
@@ -2913,7 +2926,7 @@ function montarApp(){
     });
     // volumes por hora: do maior para o menor (quem não tem horas fica no fim)
     const listaVH = [...lista].sort((a, b) => (b.vh ?? -1) - (a.vh ?? -1) || a.nome.localeCompare(b.nome, 'pt-BR'));
-    const nomesVH = listaVH.map(p => p.nome.split(' '));
+    const nomesVH = expNomesCurtos(listaVH.map(p => p.nome));
     desenharGrafico('exp-eq-chart-volhora', {
       type: 'bar',
       data: { labels: nomesVH, datasets: [

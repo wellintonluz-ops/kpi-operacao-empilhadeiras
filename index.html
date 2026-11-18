@@ -218,7 +218,7 @@
           <input type="date" id="dash-fim" class="rounded-lg px-3 py-2 text-sm">
         </div>
         <button id="btn-dash-buscar" class="bg-[var(--accent)] text-black font-semibold text-sm rounded-lg px-4 py-2 hover:brightness-110 transition">Buscar</button>
-        <button id="btn-dash-imprimir" type="button" title="Imprime em folha A4: Movimentações efetivas vs meta, Tempo médio por movimentação no dia vs meta e Detalhamento diário" class="border border-[var(--border)] bg-white text-sm font-semibold rounded-lg px-4 py-2 hover:bg-[var(--panel-2)] transition flex items-center gap-1.5">
+        <button id="btn-dash-imprimir" type="button" title="Imprime em folha A4: Movimentações efetivas vs capacidade, Tempo médio por movimentação no dia vs meta e Detalhamento diário" class="border border-[var(--border)] bg-white text-sm font-semibold rounded-lg px-4 py-2 hover:bg-[var(--panel-2)] transition flex items-center gap-1.5">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
           Imprimir
         </button>
@@ -241,7 +241,7 @@
 
         <div class="grid lg:grid-cols-2 gap-4">
           <div class="panel rounded-xl p-4">
-            <div class="relative flex items-center gap-2 mb-3"><p class="text-sm font-semibold">Movimentações efetivas vs meta</p><span class="info-dica"><button type="button" class="info-dica-btn" aria-label="Como este gráfico é calculado" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como este gráfico é calculado</p><p class="dim">Cada ponto é um dia do período filtrado (com "Todos", somando todos os operadores).</p><div class="serie" style="color:#3b82f6"><i class="barra"></i><div style="color:var(--text)"><b>Efetivo</b>: total de movimentações do dia (soma dos operadores).</div></div><div class="serie" style="color:#f5a623"><i></i><div style="color:var(--text)"><b>Meta</b>: meta diária de cada operador do filtro somada (por exemplo 147 por operador). É uma linha fixa: não cai em dia de falta ou sem importação.</div></div><p class="dim"><b>Efetivo</b> = movimentações do operador em que a origem ou o destino é porta-pallet (locação "PP" + número). O <b>intervalo</b> de uma movimentação é o tempo desde a anterior do mesmo dia: se for até o limite (padrão 15 min) é "ok"; acima disso é uma parada "a verificar". Movimentações até 00:29 contam no dia anterior.</p></div></div></span></div>
+            <div class="relative flex items-center gap-2 mb-3"><p class="text-sm font-semibold">Movimentações efetivas vs capacidade</p><span class="info-dica"><button type="button" class="info-dica-btn" aria-label="Como este gráfico é calculado" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como este gráfico é calculado</p><p class="dim">Cada ponto é um dia do período filtrado (com "Todos", somando todos os operadores).</p><div class="serie" style="color:#3b82f6"><i class="barra"></i><div style="color:var(--text)"><b>Efetivo</b>: total de movimentações do dia (soma dos operadores).</div></div><div class="serie" style="color:#f5a623"><i></i><div style="color:var(--text)"><b>Capacidade</b>: capacidade diária de cada operador do filtro somada (por exemplo 147 por operador). É o que a equipe consegue movimentar no dia, haja demanda ou não — por isso é uma linha fixa: não cai em dia de falta ou sem importação.</div></div><p class="dim"><b>Efetivo</b> = movimentações do operador em que a origem ou o destino é porta-pallet (locação "PP" + número). O <b>intervalo</b> de uma movimentação é o tempo desde a anterior do mesmo dia: se for até o limite (padrão 15 min) é "ok"; acima disso é uma parada "a verificar". Movimentações até 00:29 contam no dia anterior.</p></div></div></span></div>
             <div class="chart-box"><canvas id="chart-efetivo" height="220"></canvas></div>
           </div>
           <div class="panel rounded-xl p-4">
@@ -304,7 +304,7 @@
                 <th class="py-2 pr-2">Data</th>
                 <th class="py-2 pr-2">Operador</th>
                 <th class="py-2 px-2 text-right border-l border-[var(--border)]">Efetivo</th>
-                <th class="py-2 px-2 text-right">Meta</th>
+                <th class="py-2 px-2 text-right">Capacidade</th>
                 <th class="py-2 px-2 text-right">% Prod.</th>
                 <th class="py-2 px-2 text-right border-l border-[var(--border)]">Horas trab.</th>
                 <th class="py-2 px-2 text-right">Horas estim.</th>
@@ -565,7 +565,7 @@
             <p id="exp-kpi-quadro-sub" class="text-[10px] text-[var(--text-dim)] mt-0.5"></p>
           </div>
           <div class="panel rounded-xl p-4" style="box-shadow:inset 3px 0 0 var(--accent)">
-            <div class="flex items-center gap-1.5 mb-1"><p class="text-[11px] text-[var(--text-dim)]">Média de volumes separados por dia</p><span class="info-dica cartao"><button type="button" class="info-dica-btn" aria-label="Como este indicador é calculado" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como este indicador é calculado</p><p class="dim">Só entram listas <b>concluídas</b>, no dia da conclusão (até 00:29 conta no dia anterior). Valem os filtros de Turno, Separador e período; dias sem lista não entram nas médias.</p><p><b>Volumes do período ÷ dias com lista</b>. Se o período inclui hoje, o dia ainda está parcial.</p><p><b>Meta quadro previsto</b>: média, nos dias, de pessoas previstas × meta de volumes/hora × jornada. O % é o total de volumes ÷ a soma das metas dos dias.</p><p><b>Com quem separou</b>: o mesmo, mas a meta de cada dia soma só os separadores que concluíram lista. Quem não é separador conta nos volumes, não na meta.</p><p class="dim">Com um separador escolhido, a meta é a de uma pessoa do turno dele.</p></div></div></span></div>
+            <div class="flex items-center gap-1.5 mb-1"><p class="text-[11px] text-[var(--text-dim)]">Média de volumes separados por dia</p><span class="info-dica cartao"><button type="button" class="info-dica-btn" aria-label="Como este indicador é calculado" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como este indicador é calculado</p><p class="dim">Só entram listas <b>concluídas</b>, no dia da conclusão (até 00:29 conta no dia anterior). Valem os filtros de Turno, Separador e período; dias sem lista não entram nas médias.</p><p><b>Volumes do período ÷ dias com lista</b>. Se o período inclui hoje, o dia ainda está parcial.</p><p><b>Capacidade quadro previsto</b>: média, nos dias, do que o quadro consegue separar (pessoas previstas × meta de volumes/hora × jornada), haja demanda ou não. O % é o total de volumes ÷ a soma das capacidades dos dias.</p><p><b>Com quem separou</b>: o mesmo, mas a capacidade de cada dia soma só os separadores que concluíram lista. Quem não é separador conta nos volumes, não na capacidade.</p><p class="dim">Com um separador escolhido, a capacidade é a de uma pessoa do turno dele.</p></div></div></span></div>
             <p id="exp-kpi-voldia" class="text-2xl font-bold font-mono">–</p>
             <p id="exp-kpi-voldia-meta" class="text-[11px] font-medium mt-1"></p>
             <p id="exp-kpi-voldia-meta2" class="text-[11px] font-medium mt-0.5"></p>
@@ -604,7 +604,7 @@
         </div>
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
           <div class="panel rounded-xl p-5">
-            <div class="relative flex items-center gap-2 mb-3"><p class="text-sm font-semibold">Histórico mensal de separação vs meta</p><span class="info-dica"><button type="button" class="info-dica-btn" aria-label="Como este gráfico é calculado" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como este gráfico é calculado</p><p class="dim">Cada grupo é um <b>mês do calendário</b> e cada cor é um <b>ano</b>: o mesmo mês de anos diferentes fica lado a lado, para ver a diferença. A lista "Ano" começa no ano atual; "Todos os anos" põe os anos lado a lado. Soma só listas <b>concluídas</b>, no dia da conclusão (até 00:29 conta no dia anterior). Valem os filtros de Turno e Separador, mas <b>não o período</b> De/Até. Meses sem lista não aparecem; o mês atual é parcial.</p><div class="serie" style="color:#3b82f6"><i class="barra"></i><div style="color:var(--text)"><b>Volumes separados</b> (uma coluna por ano): soma dos volumes das listas concluídas do mês.</div></div><div class="serie" style="color:#ef4444"><i class="trac"></i><div style="color:var(--text)"><b>Meta (quadro previsto)</b>, traço sobre cada coluna: soma, dia a dia, de pessoas previstas × meta de volumes/hora × jornada (por turno), com o quadro que valia em cada mês. Só os dias com lista entram. Com um separador escolhido, vira "Meta volumes/mês": a meta de uma pessoa do turno dele.</div></div><div class="serie" style="color:#64748b"><i class="trac"></i><div style="color:var(--text)"><b>Meta (com quem separou)</b>, traço sobre cada coluna: só com "Todos". Soma, dia a dia, de meta/hora × jornada dos separadores que concluíram lista. Quem não é separador conta nos volumes, mas não na meta.</div></div><p class="dim">Passe o mouse num mês para ver, de cada ano, os volumes, os dias com lista e as metas.</p></div></div></span></div>
+            <div class="relative flex items-center gap-2 mb-3"><p class="text-sm font-semibold">Histórico mensal de separação vs capacidade</p><span class="info-dica"><button type="button" class="info-dica-btn" aria-label="Como este gráfico é calculado" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como este gráfico é calculado</p><p class="dim">Cada grupo é um <b>mês do calendário</b> e cada cor é um <b>ano</b>: o mesmo mês de anos diferentes fica lado a lado, para ver a diferença. A lista "Ano" começa no ano atual; "Todos os anos" põe os anos lado a lado. Soma só listas <b>concluídas</b>, no dia da conclusão (até 00:29 conta no dia anterior). Valem os filtros de Turno e Separador, mas <b>não o período</b> De/Até. Meses sem lista não aparecem; o mês atual é parcial.</p><div class="serie" style="color:#3b82f6"><i class="barra"></i><div style="color:var(--text)"><b>Volumes separados</b> (uma coluna por ano): soma dos volumes das listas concluídas do mês.</div></div><div class="serie" style="color:#ef4444"><i class="trac"></i><div style="color:var(--text)"><b>Capacidade (quadro previsto)</b>, traço sobre cada coluna: soma, dia a dia, de pessoas previstas × meta de volumes/hora × jornada (por turno), com o quadro que valia em cada mês. É o que o quadro consegue separar, haja demanda ou não. Só os dias com lista entram. Com um separador escolhido, vira "Capacidade volumes/mês": a capacidade de uma pessoa do turno dele.</div></div><div class="serie" style="color:#64748b"><i class="trac"></i><div style="color:var(--text)"><b>Capacidade (com quem separou)</b>, traço sobre cada coluna: só com "Todos". Soma, dia a dia, de meta/hora × jornada dos separadores que concluíram lista. Quem não é separador conta nos volumes, mas não na capacidade.</div></div><p class="dim">Passe o mouse num mês para ver, de cada ano, os volumes, os dias com lista e as capacidades.</p></div></div></span></div>
             <div class="chart-box"><canvas id="exp-chart-mes-vol" height="220"></canvas></div>
           </div>
           <div class="panel rounded-xl p-5">
@@ -632,7 +632,7 @@
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
           <div class="panel rounded-xl p-5">
-            <div class="relative flex items-center gap-2 mb-3"><p class="text-sm font-semibold">Volumes separados por dia vs meta</p><span class="info-dica"><button type="button" class="info-dica-btn" aria-label="Como este gráfico é calculado" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como este gráfico é calculado</p><p class="dim">Cada ponto é um dia. Só entram listas <b>concluídas</b>, no dia da conclusão (até 00:29 conta no dia anterior). Valem os filtros de Turno e Separador, e dias sem lista não aparecem.</p><div class="serie" style="color:#3b82f6"><i class="barra"></i><div style="color:var(--text)"><b>Volumes separados</b>: soma dos volumes das listas concluídas do dia.</div></div><div class="serie" style="color:#ef4444"><i class="trac"></i><div style="color:var(--text)"><b>Meta (quadro previsto)</b>: pessoas previstas × meta de volumes/hora × jornada, por turno (soma dos dois turnos em "Todos"). Com um separador escolhido, vira "Meta volumes/dia": a meta de uma pessoa do turno dele.</div></div><div class="serie" style="color:#64748b"><i class="trac"></i><div style="color:var(--text)"><b>Meta (com quem separou)</b>: só com "Todos". Soma, de cada separador que concluiu lista no dia, meta/hora × jornada do turno dele. Quem não é separador conta nos volumes, mas não na meta.</div></div><p class="dim">Como ler: barra abaixo da meta do quadro previsto, mas perto da meta de quem separou, indica falta de pessoas.</p></div></div></span></div>
+            <div class="relative flex items-center gap-2 mb-3"><p class="text-sm font-semibold">Volumes separados por dia vs capacidade</p><span class="info-dica"><button type="button" class="info-dica-btn" aria-label="Como este gráfico é calculado" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como este gráfico é calculado</p><p class="dim">Cada ponto é um dia. Só entram listas <b>concluídas</b>, no dia da conclusão (até 00:29 conta no dia anterior). Valem os filtros de Turno e Separador, e dias sem lista não aparecem.</p><div class="serie" style="color:#3b82f6"><i class="barra"></i><div style="color:var(--text)"><b>Volumes separados</b>: soma dos volumes das listas concluídas do dia.</div></div><div class="serie" style="color:#ef4444"><i class="trac"></i><div style="color:var(--text)"><b>Capacidade (quadro previsto)</b>: o que o quadro consegue separar, haja demanda ou não — pessoas previstas × meta de volumes/hora × jornada, por turno (soma dos dois turnos em "Todos"). Com um separador escolhido, vira "Capacidade volumes/dia": a capacidade de uma pessoa do turno dele.</div></div><div class="serie" style="color:#64748b"><i class="trac"></i><div style="color:var(--text)"><b>Capacidade (com quem separou)</b>: só com "Todos". Soma, de cada separador que concluiu lista no dia, meta/hora × jornada do turno dele. Quem não é separador conta nos volumes, mas não na capacidade.</div></div><p class="dim">Como ler: barra abaixo da capacidade do quadro previsto, mas perto da capacidade de quem separou, indica falta de pessoas.</p></div></div></span></div>
             <div class="chart-box"><canvas id="exp-chart-dias" height="220"></canvas></div>
           </div>
           <div class="panel rounded-xl p-5">
@@ -651,9 +651,9 @@
                   <th class="py-2 pr-3 font-medium text-right" title="Separadores que separaram no dia / quadro previsto">Separadores</th>
                   <th class="py-2 pr-3 font-medium text-right">Listas</th>
                   <th class="py-2 pr-3 font-medium text-right">Volumes</th>
-                  <th class="py-2 pr-3 font-medium text-right" title="Meta do quadro previsto (com as vagas em aberto)">Meta quadro previsto</th>
+                  <th class="py-2 pr-3 font-medium text-right" title="Capacidade do quadro previsto (com as vagas em aberto)">Capacidade quadro previsto</th>
                   <th class="py-2 pr-3 font-medium text-right">%</th>
-                  <th class="py-2 pr-3 font-medium text-right" title="Meta proporcional a quem de fato separou no dia">Meta c/ quem separou</th>
+                  <th class="py-2 pr-3 font-medium text-right" title="Capacidade proporcional a quem de fato separou no dia">Capacidade c/ quem separou</th>
                   <th class="py-2 pr-3 font-medium text-right">%</th>
                   <th class="py-2 pr-3 font-medium text-right">Horas trab.</th>
                   <th class="py-2 pr-3 font-medium text-right" title="Horas trabalhadas ÷ horas do quadro previsto">% horas previstas</th>
@@ -678,7 +678,7 @@
                   <th class="py-2 pr-3 font-medium text-right">Listas</th>
                   <th class="py-2 pr-3 font-medium text-right">Volumes</th>
                   <th class="py-2 pr-3 font-medium text-right">Vol./dia</th>
-                  <th class="py-2 pr-3 font-medium text-right" title="Volumes por dia ÷ meta de um separador (meta/hora × jornada do turno)">% meta dia</th>
+                  <th class="py-2 pr-3 font-medium text-right" title="Volumes por dia ÷ capacidade de um separador (meta/hora × jornada do turno)">% capacidade dia</th>
                   <th class="py-2 pr-3 font-medium text-right">Horas trab.</th>
                   <th class="py-2 pr-3 font-medium text-right">Vol./hora</th>
                   <th class="py-2 font-medium text-right" title="Volumes por hora ÷ meta de volumes por hora do turno">% meta vol/h</th>
@@ -737,7 +737,7 @@
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
           <div class="panel rounded-xl p-5">
-            <div class="relative flex items-center gap-2 mb-3"><p class="text-sm font-semibold">Volumes por colaborador vs meta</p><span class="info-dica"><button type="button" class="info-dica-btn" aria-label="Como este gráfico é calculado" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como este gráfico é calculado</p><p class="dim">Só entram listas <b>concluídas</b>, no dia da conclusão (até 00:29 conta no dia anterior). Valem o Turno e o período escolhidos nesta aba; dias sem lista não aparecem.</p><div class="serie" style="color:#3b82f6"><i class="barra"></i><div style="color:var(--text)"><b>Volumes</b>: soma dos volumes das listas concluídas dele no período.</div></div><div class="serie" style="color:#ef4444"><i class="trac"></i><div style="color:var(--text)"><b>Meta do período</b>: meta de volumes/dia de um separador do turno dele (meta/hora × jornada) × os dias em que ele separou. Quem não é separador fica sem meta.</div></div></div></div></span></div>
+            <div class="relative flex items-center gap-2 mb-3"><p class="text-sm font-semibold">Volumes por colaborador vs capacidade</p><span class="info-dica"><button type="button" class="info-dica-btn" aria-label="Como este gráfico é calculado" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como este gráfico é calculado</p><p class="dim">Só entram listas <b>concluídas</b>, no dia da conclusão (até 00:29 conta no dia anterior). Valem o Turno e o período escolhidos nesta aba; dias sem lista não aparecem.</p><div class="serie" style="color:#3b82f6"><i class="barra"></i><div style="color:var(--text)"><b>Volumes</b>: soma dos volumes das listas concluídas dele no período.</div></div><div class="serie" style="color:#ef4444"><i class="trac"></i><div style="color:var(--text)"><b>Capacidade do período</b>: capacidade de volumes/dia de um separador do turno dele (meta/hora × jornada) × os dias em que ele separou. Quem não é separador fica sem capacidade.</div></div></div></div></span></div>
             <div class="chart-box"><canvas id="exp-eq-chart-vol" height="220"></canvas></div>
           </div>
           <div class="panel rounded-xl p-5">
@@ -748,7 +748,7 @@
 
         <div id="exp-eq-mensal" class="grid grid-cols-1 lg:grid-cols-2 gap-5">
           <div class="panel rounded-xl p-5">
-            <div class="relative flex items-center gap-2 mb-3"><p class="text-sm font-semibold">Histórico mensal da equipe — volumes por colaborador</p><span class="info-dica"><button type="button" class="info-dica-btn" aria-label="Como este gráfico é calculado" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como este gráfico é calculado</p><p class="dim">Cada grupo de colunas é um <b>mês</b> (últimos 12), somando só listas <b>concluídas</b>, no dia da conclusão (até 00:29 conta no dia anterior). Vale o filtro de Turno, mas <b>não o período</b> De/Até. <b>Só entram os colaboradores marcados como separador</b> (Configurações). Meses sem lista não aparecem; o mês atual é parcial (*). Com até 10 colaboradores no histórico, cada um tem a sua cor; acima disso, os menores entram em "Outros".</p><p>Cada cor é um colaborador, e cada coluna em pé é o volume que ele separou no mês, lado a lado com os demais. O total da equipe no mês e os dias com lista aparecem ao passar o mouse.</p><div class="serie" style="color:#111827"><i></i><div style="color:var(--text)"><b>Meta do mês</b> (traço preto sobre a coluna): meta de volumes/dia dele (meta/hora × jornada do turno) × os dias do mês em que ele separou.</div></div></div></div></span></div>
+            <div class="relative flex items-center gap-2 mb-3"><p class="text-sm font-semibold">Histórico mensal da equipe — volumes por colaborador</p><span class="info-dica"><button type="button" class="info-dica-btn" aria-label="Como este gráfico é calculado" aria-haspopup="true">!</button><div class="info-dica-caixa" role="tooltip"><div class="info-dica-corpo"><p class="tit">Como este gráfico é calculado</p><p class="dim">Cada grupo de colunas é um <b>mês</b> (últimos 12), somando só listas <b>concluídas</b>, no dia da conclusão (até 00:29 conta no dia anterior). Vale o filtro de Turno, mas <b>não o período</b> De/Até. <b>Só entram os colaboradores marcados como separador</b> (Configurações). Meses sem lista não aparecem; o mês atual é parcial (*). Com até 10 colaboradores no histórico, cada um tem a sua cor; acima disso, os menores entram em "Outros".</p><p>Cada cor é um colaborador, e cada coluna em pé é o volume que ele separou no mês, lado a lado com os demais. O total da equipe no mês e os dias com lista aparecem ao passar o mouse.</p><div class="serie" style="color:#111827"><i></i><div style="color:var(--text)"><b>Capacidade do mês</b> (traço preto sobre a coluna): capacidade de volumes/dia dele (meta/hora × jornada do turno) × os dias do mês em que ele separou.</div></div></div></div></span></div>
             <div class="chart-box"><canvas id="exp-eq-chart-mes-vol" height="220"></canvas></div>
           </div>
           <div class="panel rounded-xl p-5">
@@ -791,7 +791,7 @@
                 <th class="py-2 pr-3 font-medium">Separadores previstos</th>
                 <th class="py-2 pr-3 font-medium">Meta de volumes por hora<br><span class="font-normal">(de cada separador)</span></th>
                 <th class="py-2 pr-3 font-medium">Jornada estimada (h/dia)</th>
-                <th class="py-2 pr-3 font-medium">Meta de volumes por dia<br><span class="font-normal">(calculada)</span></th>
+                <th class="py-2 pr-3 font-medium">Capacidade de volumes por dia<br><span class="font-normal">(calculada)</span></th>
                 <th class="py-2 font-medium">Horas previstas por dia<br><span class="font-normal">(calculada)</span></th>
               </tr>
             </thead>
@@ -970,7 +970,7 @@
                   <th class="py-2 pr-3 font-medium">Turno</th>
                   <th class="py-2 pr-3 font-medium text-right">Listas</th>
                   <th class="py-2 pr-3 font-medium text-right">Volumes</th>
-                  <th class="py-2 pr-3 font-medium text-right" title="Volumes do dia ÷ meta de um separador (meta/hora × jornada do turno)">% meta dia</th>
+                  <th class="py-2 pr-3 font-medium text-right" title="Volumes do dia ÷ capacidade de um separador (meta/hora × jornada do turno)">% capacidade dia</th>
                   <th class="py-2 pr-3 font-medium text-right">Horas trab.</th>
                   <th class="py-2 pr-3 font-medium text-right">Vol./hora</th>
                   <th class="py-2 font-medium text-right" title="Volumes por hora ÷ meta de volumes por hora do turno">% meta vol/h</th>
@@ -2510,7 +2510,7 @@ function montarApp(){
     $('#exp-kpi-volhora').textContent = expFmtNum(volHora, 1);
     $('#exp-kpi-volhora-meta').innerHTML = metaHtml('Meta', metaVolHora === null ? null : expFmtNum(metaVolHora, 1), pct(volHora, metaVolHora));
     $('#exp-kpi-voldia').textContent = expFmtNum(volDia, 1);
-    $('#exp-kpi-voldia-meta').innerHTML = metaHtml(todosSep ? 'Meta quadro previsto' : 'Meta', prevVol.meta === null ? null : expFmtNum(prevVol.meta), prevVol.pct);
+    $('#exp-kpi-voldia-meta').innerHTML = metaHtml(todosSep ? 'Capacidade quadro previsto' : 'Capacidade', prevVol.meta === null ? null : expFmtNum(prevVol.meta), prevVol.pct);
     $('#exp-kpi-voldia-meta2').innerHTML = todosSep && ajustVol.meta !== null
       ? metaHtml('Com quem separou', expFmtNum(ajustVol.meta), ajustVol.pct) : '';
     $('#exp-kpi-voldia-sub').textContent = `${expFmtNum(volumes)} volumes ÷ ${nDias} dia(s)` + (temHoje ? ' · inclui hoje (parcial)' : '');
@@ -2596,8 +2596,8 @@ function montarApp(){
       metasBarra: metas.map(mt => ({ cor: mt.cor, v: mesesNum.map(n => { const m = mesDe(ano, n); return m ? mt.de(m) : null; }) })),
       yAxisID: 'y', backgroundColor: corAno(ano), borderRadius: 4, maxBarThickness: 44, order: 1, rotuloCasas: casasRot,
     }));
-    const metasVol = [{ cor: '#ef4444', rot: todosSep ? 'Meta (quadro previsto)' : 'Meta volumes/mês', de: m => arred(m.metaPrev) }]
-      .concat(todosSep ? [{ cor: '#64748b', rot: 'Meta (com quem separou)', de: m => arred(m.metaAjust) }] : []);
+    const metasVol = [{ cor: '#ef4444', rot: todosSep ? 'Capacidade (quadro previsto)' : 'Capacidade volumes/mês', de: m => arred(m.metaPrev) }]
+      .concat(todosSep ? [{ cor: '#64748b', rot: 'Capacidade (com quem separou)', de: m => arred(m.metaAjust) }] : []);
     const dsVolMes = estrutura('', m => m.volumes, 0, metasVol);
     const metasVolUsadas = metasVol.filter(mt => dsVolMes.some(d => d.metasBarra.some(x => x.cor === mt.cor && x.v.some(v => v))));
     metasVolUsadas.forEach(mt => dsVolMes.push(legendaMeta(mt.rot + ' (traço em cada coluna)', mt.cor)));
@@ -2664,8 +2664,8 @@ function montarApp(){
         labels,
         datasets: [
           { type: 'bar', label: 'Volumes separados', data: dias.map(d => d.volumes), yAxisID: 'y', backgroundColor: '#3b82f6', borderRadius: 4, maxBarThickness: 56, order: 1 },
-          ...(dias.some(d => d.metaPrevVolDia) ? [linhaMeta(todosSep ? 'Meta (quadro previsto)' : 'Meta volumes/dia', dias.map(d => arred(d.metaPrevVolDia)), '#ef4444', [7, 5])] : []),
-          ...(todosSep && dias.some(d => d.metaAjustVolDia) ? [linhaMeta('Meta (com quem separou)', dias.map(d => arred(d.metaAjustVolDia)), '#64748b', [3, 3])] : []),
+          ...(dias.some(d => d.metaPrevVolDia) ? [linhaMeta(todosSep ? 'Capacidade (quadro previsto)' : 'Capacidade volumes/dia', dias.map(d => arred(d.metaPrevVolDia)), '#ef4444', [7, 5])] : []),
+          ...(todosSep && dias.some(d => d.metaAjustVolDia) ? [linhaMeta('Capacidade (com quem separou)', dias.map(d => arred(d.metaAjustVolDia)), '#64748b', [3, 3])] : []),
         ],
       },
       options: opcoes('Volumes no dia', 0),
@@ -2905,13 +2905,13 @@ function montarApp(){
       const maxAlto = (ds) => Math.max(0, ...ds.flatMap(d => [...d.data, ...(d.metaBarra || [])].filter(v => typeof v === 'number')));
       const dsVol = top.map(nm => ({ type: 'bar', label: nm, data: chaves.map(k => volPessoa(k, nm)), metaBarra: chaves.map(k => porMes[k].pessoas[nm] ? porMes[k].pessoas[nm].meta : null), backgroundColor: corPessoa(nm), maxBarThickness: 40, order: 1 }));
       if (outros.length) dsVol.push({ type: 'bar', label: 'Outros', data: chaves.map(k => { const v = outros.reduce((a, nm) => a + (volPessoa(k, nm) || 0), 0); return v || null; }), backgroundColor: '#94a3b8', maxBarThickness: 40, order: 1 });
-      if (dsVol.some(d => (d.metaBarra || []).some(v => v))) dsVol.push(legendaMeta('Meta do mês (traço em cada coluna)'));
+      if (dsVol.some(d => (d.metaBarra || []).some(v => v))) dsVol.push(legendaMeta('Capacidade do mês (traço em cada coluna)'));
       const oVol = baseOptions((v) => expFmtNum(v));
       oVol.scales.y.beginAtZero = true; oVol.scales.y.suggestedMax = maxAlto(dsVol) * 1.06;
       oVol.scales.y.title = { display: true, text: 'Volumes no mês', color: '#8b93a3' };
       oVol.interaction = { mode: 'index', intersect: false };
       oVol.plugins.tooltip = { callbacks: {
-        label: (c) => { if (!c.parsed.y) return null; const mt = c.dataset.metaBarra && c.dataset.metaBarra[c.dataIndex]; return `${c.dataset.label}: ${expFmtNum(c.parsed.y)}${mt ? ` (meta ${expFmtNum(mt)})` : ''}`; },
+        label: (c) => { if (!c.parsed.y) return null; const mt = c.dataset.metaBarra && c.dataset.metaBarra[c.dataIndex]; return `${c.dataset.label}: ${expFmtNum(c.parsed.y)}${mt ? ` (capacidade ${expFmtNum(mt)})` : ''}`; },
         footer: (it) => { const k = chaves[it[0].dataIndex]; const tot = Object.values(porMes[k].pessoas).reduce((a, p) => a + p.vol, 0); return `Total da equipe no mês: ${expFmtNum(tot)} · ${porMes[k].dias.size} dia(s) com listas`; },
       } };
       desenharGrafico('exp-eq-chart-mes-vol', { type: 'bar', data: { labels: rot, datasets: dsVol }, options: oVol, plugins: [metaNasColunas] });
@@ -2946,7 +2946,7 @@ function montarApp(){
       type: 'bar',
       data: { labels: nomes, datasets: [
         { type: 'bar', label: 'Volumes', data: lista.map(p => p.volumes), backgroundColor: '#3b82f6', borderRadius: 4, maxBarThickness: 56, order: 1 },
-        ...(lista.some(p => p.metaVol) ? [tracoMeta('Meta do período', lista.map(p => p.metaVol ? Math.round(p.metaVol * 10) / 10 : null), '#ef4444')] : []),
+        ...(lista.some(p => p.metaVol) ? [tracoMeta('Capacidade do período', lista.map(p => p.metaVol ? Math.round(p.metaVol * 10) / 10 : null), '#ef4444')] : []),
       ] },
       options: opcoes('Volumes no período', 0), plugins: [expRotulosVolumes],
     });
@@ -3129,7 +3129,7 @@ function montarApp(){
       return {
         'Data': dataBR, 'Colaborador': p.nome, 'Turno': expTurnoDe(p.nome), 'É separador': eh ? 'Sim' : 'Não',
         'Listas': p.listas, 'Volumes': p.volumes,
-        '% meta dia': q && q.volDiaPessoa ? num(p.volumes / q.volDiaPessoa * 100) : '',
+        '% capacidade dia': q && q.volDiaPessoa ? num(p.volumes / q.volDiaPessoa * 100) : '',
         'Horas trabalhadas': expFmtDuracao(p.tempoExecSeg), 'Vol./hora': num(vh),
         '% meta vol/h': q && q.volHora && vh !== null ? num(vh / q.volHora * 100) : '',
       };
@@ -4421,7 +4421,7 @@ function montarApp(){
         labels,
         datasets: [
           { label: 'Efetivo', data: efetivoSerie, backgroundColor: '#3b82f6', borderRadius: 4 },
-          { label: 'Meta', data: metaSerie, type: 'line', borderColor: '#f5a623', backgroundColor: '#f5a623', tension: .3, pointRadius: 2 },
+          { label: 'Capacidade', data: metaSerie, type: 'line', borderColor: '#f5a623', backgroundColor: '#f5a623', tension: .3, pointRadius: 2 },
         ]
       },
       options: baseOptions()
@@ -4751,7 +4751,7 @@ function montarApp(){
     const ini = $('#dash-inicio').value, fim = $('#dash-fim').value;
     const periodo = ini && fim ? (ini === fim ? formatDataBR(ini) : `${formatDataBR(ini)} a ${formatDataBR(fim)}`) : 'todo o histórico';
     const graficos = [
-      ['Movimentações efetivas vs meta', imagemDoGrafico('chart-efetivo')],
+      ['Movimentações efetivas vs capacidade', imagemDoGrafico('chart-efetivo')],
       [$('#titulo-tempo-medio-dia').textContent, imagemDoGrafico('chart-quantidade-total')],
     ].filter(g => g[1]);
     const tabela = $('#tabela-dashboard').closest('table').cloneNode(true);

@@ -19,6 +19,28 @@
   }
   html,body{background:var(--bg); color:var(--text); font-family:'Inter',system-ui,sans-serif;}
   .font-mono{font-family:'JetBrains Mono',monospace;}
+  /* ---- impressão A4 do Dashboard (botão "Imprimir") ---- */
+  #area-impressao{display:none;}
+  @media print {
+    @page { size: A4 portrait; margin: 10mm; }
+    body.imprimindo, body.imprimindo html { background:#fff !important; }
+    body.imprimindo > *:not(#area-impressao) { display:none !important; }
+    body.imprimindo #area-impressao { display:block !important; color:#111; font-family:'Inter',system-ui,sans-serif; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    #area-impressao .imp-cab { border-bottom:1.5pt solid #f5a623; padding-bottom:3mm; margin-bottom:5mm; }
+    #area-impressao .imp-cab h1 { font-size:14pt; font-weight:700; margin:0; }
+    #area-impressao .imp-cab p { font-size:8.5pt; color:#555; margin:1mm 0 0; }
+    #area-impressao .imp-bloco { break-inside:avoid; margin-bottom:5mm; }
+    #area-impressao .imp-bloco h2 { font-size:10pt; font-weight:600; margin:0 0 2mm; }
+    #area-impressao .imp-bloco img { display:block; width:100%; height:auto; }
+    #area-impressao .imp-tabela h2 { font-size:10pt; font-weight:600; margin:0 0 2mm; }
+    #area-impressao table { width:100%; border-collapse:collapse; font-size:6.8pt; white-space:normal; }
+    #area-impressao thead { display:table-header-group; }
+    #area-impressao tr { break-inside:avoid; }
+    #area-impressao th, #area-impressao td { padding:1.2mm 1.2mm; border-bottom:0.4pt solid #d1d5db; vertical-align:top; }
+    #area-impressao td:first-child { white-space:nowrap; }
+    #area-impressao button { all:unset; }
+    #area-impressao .imp-rodape { margin-top:4mm; font-size:7pt; color:#888; }
+  }
   .panel{background:var(--panel); border:1px solid var(--border);}
   .panel-2{background:var(--panel-2); border:1px solid var(--border);}
   ::-webkit-scrollbar{width:10px; height:10px;}
@@ -196,6 +218,10 @@
           <input type="date" id="dash-fim" class="rounded-lg px-3 py-2 text-sm">
         </div>
         <button id="btn-dash-buscar" class="bg-[var(--accent)] text-black font-semibold text-sm rounded-lg px-4 py-2 hover:brightness-110 transition">Buscar</button>
+        <button id="btn-dash-imprimir" type="button" title="Imprime em folha A4: Movimentações efetivas vs meta, Tempo médio por movimentação no dia vs meta e Detalhamento diário" class="border border-[var(--border)] bg-white text-sm font-semibold rounded-lg px-4 py-2 hover:bg-[var(--panel-2)] transition flex items-center gap-1.5">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          Imprimir
+        </button>
         <div id="dash-loading" class="hidden spinner"></div>
         <p class="text-xs text-[var(--text-dim)] ml-auto">Os indicadores são recalculados usando as metas atuais em <b>Configurações</b>.</p>
       </div>
@@ -4701,6 +4727,54 @@ function montarApp(){
     `;
     }).join('');
   }
+
+  // ---------- Impressão A4 do Dashboard ----------
+  // Monta uma área só com o que sai no papel (cabeçalho, 2 gráficos e o detalhamento diário),
+  // imprime em folha A4 e remove a área em seguida.
+  function imagemDoGrafico(id) {
+    const c = window.Chart && Chart.getChart(id);
+    if (!c || !c.canvas.offsetParent) return null;
+    const antes = c.options.devicePixelRatio;
+    try {
+      c.stop(); // termina qualquer animação em andamento antes de redimensionar
+      c.options.devicePixelRatio = 3; c.resize(760, 300); // tamanho próprio do papel (largura útil do A4) e mais nítido
+      c.update('none'); c.stop(); c.draw(); // desenha já, sem esperar animação
+      const t = document.createElement('canvas'); t.width = c.canvas.width; t.height = c.canvas.height;
+      const x = t.getContext('2d'); x.fillStyle = '#ffffff'; x.fillRect(0, 0, t.width, t.height); x.drawImage(c.canvas, 0, 0);
+      return t.toDataURL('image/png');
+    } finally { c.options.devicePixelRatio = antes; c.resize(); }
+  }
+  async function imprimirDashboard() {
+    const esc = (t) => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    if ($('#dash-conteudo').classList.contains('hidden') || !$('#tabela-dashboard').rows.length) { toast('Não há dados no período para imprimir. Clique em Buscar primeiro.', 'erro'); return; }
+    const op = $('#dash-operador'), opTxt = op.selectedOptions[0] ? op.selectedOptions[0].text : '';
+    const ini = $('#dash-inicio').value, fim = $('#dash-fim').value;
+    const periodo = ini && fim ? (ini === fim ? formatDataBR(ini) : `${formatDataBR(ini)} a ${formatDataBR(fim)}`) : 'todo o histórico';
+    const graficos = [
+      ['Movimentações efetivas vs meta', imagemDoGrafico('chart-efetivo')],
+      [$('#titulo-tempo-medio-dia').textContent, imagemDoGrafico('chart-quantidade-total')],
+    ].filter(g => g[1]);
+    const tabela = $('#tabela-dashboard').closest('table').cloneNode(true);
+    tabela.removeAttribute('class');
+    tabela.querySelectorAll('[class*="sticky"]').forEach(e => e.classList.remove('sticky'));
+    const area = document.createElement('div');
+    area.id = 'area-impressao';
+    area.innerHTML = `
+      <div class="imp-cab"><h1>Controle de Operação — Produtividade Empilhadeiras</h1>
+        <p>Período: <b>${periodo}</b> · Operador: <b>${esc(opTxt)}</b> · Impresso em ${new Date().toLocaleString('pt-BR')}</p></div>
+      ${graficos.map(([t, img]) => `<div class="imp-bloco"><h2>${esc(t)}</h2><img src="${img}" alt="${esc(t)}"></div>`).join('')}
+      <div class="imp-tabela"><h2>Detalhamento diário</h2></div>`;
+    area.querySelector('.imp-tabela').appendChild(tabela);
+    document.body.appendChild(area);
+    document.body.classList.add('imprimindo');
+    const tituloAntes = document.title;
+    document.title = `Produtividade Empilhadeiras — ${periodo.replace(/\//g, '-')}`;
+    const limpar = () => { document.body.classList.remove('imprimindo'); area.remove(); document.title = tituloAntes; window.removeEventListener('afterprint', limpar); };
+    window.addEventListener('afterprint', limpar);
+    await Promise.all([...area.querySelectorAll('img')].map(i => i.decode().catch(() => {})));
+    window.print();
+  }
+  $('#btn-dash-imprimir').addEventListener('click', imprimirDashboard);
 
   $('#btn-baixar-excel').addEventListener('click', () => {
     if (!linhasDashboardAtuais.length) {

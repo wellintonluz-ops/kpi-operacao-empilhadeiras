@@ -1037,7 +1037,7 @@ const MODO_LOCAL = configPendente;
 // Variáveis preenchidas por iniciarFirebase() OU configurarModoLocal(),
 // e usadas por montarApp() — mesma assinatura do SDK modular do Firebase
 // nos dois casos, então o resto do código não muda entre os dois modos.
-let doc, getDoc, setDoc, collection, query, where, orderBy, getDocs, writeBatch, arrayUnion;
+let doc, getDoc, setDoc, deleteDoc, collection, query, where, orderBy, getDocs, writeBatch, arrayUnion;
 let auth, db, provider, signInWithPopup, signOut, onAuthStateChanged;
 
 if (MODO_LOCAL) {
@@ -1053,7 +1053,7 @@ async function iniciarFirebase(){
   const fsMod = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
 
   ({ signInWithPopup, signOut, onAuthStateChanged } = authMod);
-  ({ doc, getDoc, setDoc, collection, query, where, orderBy, getDocs, writeBatch, arrayUnion } = fsMod);
+  ({ doc, getDoc, setDoc, deleteDoc, collection, query, where, orderBy, getDocs, writeBatch, arrayUnion } = fsMod);
 
   const app = initializeApp(firebaseConfig);
   auth = authMod.getAuth(app);
@@ -1161,6 +1161,12 @@ function configurarModoLocal() {
     base[ref.col] = base[ref.col] || {};
     const existente = base[ref.col][ref.id];
     base[ref.col][ref.id] = (opts && opts.merge && existente) ? mesclar(existente, dados) : resolverArrayUnion(dados);
+    gravar(base);
+  };
+
+  deleteDoc = async (ref) => {
+    const base = ler();
+    if (base[ref.col]) delete base[ref.col][ref.id];
     gravar(base);
   };
 
@@ -1310,6 +1316,13 @@ function montarApp(){
     const [y, m, d] = dataISO.split('-').map(Number);
     const dt = new Date(Date.UTC(y, m - 1, d));
     dt.setUTCDate(dt.getUTCDate() - 1);
+    return `${dt.getUTCFullYear()}-${pad(dt.getUTCMonth() + 1)}-${pad(dt.getUTCDate())}`;
+  }
+
+  function diaSeguinte(dataISO) {
+    const [y, m, d] = dataISO.split('-').map(Number);
+    const dt = new Date(Date.UTC(y, m - 1, d));
+    dt.setUTCDate(dt.getUTCDate() + 1);
     return `${dt.getUTCFullYear()}-${pad(dt.getUTCMonth() + 1)}-${pad(dt.getUTCDate())}`;
   }
 
@@ -3380,13 +3393,15 @@ function montarApp(){
 
     try {
       const substituirTudo = $('#chk-substituir-tudo').checked;
+      const fantasmas = await limparDiasFantasma(registros);
       const registrosFinais = substituirTudo ? registros : await mesclarComExistentes(registros);
       const indicadores = calcularIndicadores(registrosFinais);
       const salvos = await salvarIndicadoresPreservandoRevisao(indicadores);
 
       const resultado = $('#import-resultado');
       resultado.classList.remove('hidden');
-      resultado.innerHTML = `<p class="text-[var(--ok)]">${salvos} indicadores diários (operador × dia) salvos com sucesso${substituirTudo ? ' (substituídos do zero)' : ''}.</p>`;
+      resultado.innerHTML = `<p class="text-[var(--ok)]">${salvos} indicadores diários (operador × dia) salvos com sucesso${substituirTudo ? ' (substituídos do zero)' : ''}.</p>`
+        + (fantasmas.length ? `<p class="text-[var(--warn)] mt-1">Removido${fantasmas.length > 1 ? 's' : ''} ${fantasmas.length} dia(s) inválido(s) que continha(m) só movimentações pós-meia-noite: ${fantasmas.map(f => `${String(f.operador).replace(/</g, "&lt;")} em ${formatDataBR(f.data)}`).join(', ')}.</p>` : '');
       dashboardJaBuscou = false; // o Dashboard recarrega sozinho na próxima vez que abrir
       toast('Indicadores salvos com sucesso.');
     } catch (e) {
@@ -3398,14 +3413,42 @@ function montarApp(){
     }
   });
 
+  // Dia "fantasma": um erro antigo na reimportação jogava as movimentações de 00:00–00:29 dois dias para trás
+  // (ex.: 17/11 00:00 virava 15/11, um domingo sem operação). Um dia operacional nunca tem SÓ movimentações
+  // dessa janela — elas pertencem ao dia anterior —, então um documento assim é inválido e é removido.
+  // Confere o dia anterior a cada dia operacional do arquivo que tenha movimentações pós-meia-noite.
+  async function limparDiasFantasma(registros) {
+    const candidatos = new Map();
+    for (const r of registros) {
+      if (r.horaSeg >= LIMITE_VIRADA_DIA_SEG) continue;
+      const diaOp = diaOperacional(r.dataISO, r.horaSeg);
+      candidatos.set(`${r.responsavel}|${diaAnterior(diaOp)}`, [r.responsavel, diaAnterior(diaOp)]);
+    }
+    const removidos = [];
+    for (const [operador, dataISO] of candidatos.values()) {
+      try {
+        const ref = doc(db, 'indicadores_diarios', `${slug(operador)}_${dataISO}`);
+        const snap = await getDoc(ref);
+        if (!snap.exists()) continue;
+        const movs = snap.data().movimentos || [];
+        if (!movs.length || !movs.every(m => m.hora < LIMITE_VIRADA_DIA_SEG)) continue;
+        await deleteDoc(ref);
+        removidos.push({ operador, data: dataISO });
+      } catch (e) { console.error('Limpeza de dia fantasma', e); }
+    }
+    if (removidos.length) await removerResumos(removidos);
+    return removidos;
+  }
+
   // Junta as movimentações do arquivo atual com as que já estavam salvas em
   // cada dia tocado (evitando perder dado de um upload parcial), deduplicando
   // por ID da movimentação. Só olha os dias presentes no arquivo atual, não a
   // base toda.
   async function mesclarComExistentes(registros) {
+    // agrupa pelo DIA OPERACIONAL (00:00–00:29 conta no dia anterior) — é o dia do documento salvo
     const porOperadorDia = new Map();
     for (const r of registros) {
-      const chave = `${r.responsavel}|${r.dataISO}`;
+      const chave = `${r.responsavel}|${diaOperacional(r.dataISO, r.horaSeg)}`;
       if (!porOperadorDia.has(chave)) porOperadorDia.set(chave, []);
       porOperadorDia.get(chave).push(r);
     }
@@ -3420,7 +3463,8 @@ function montarApp(){
           existentesConvertidos = (snap.data().movimentos || [])
             .filter(m => m.id)
             .map(m => ({
-              id: m.id, responsavel: operador, dataISO, horaSeg: m.hora,
+              // movimento salvo depois da meia-noite (00:00–00:29): a data do calendário é a do dia seguinte
+              id: m.id, responsavel: operador, dataISO: m.hora < LIMITE_VIRADA_DIA_SEG ? diaSeguinte(dataISO) : dataISO, horaSeg: m.hora,
               produto: m.produto, descricao: m.descricao, tipo: null,
               origemCod: m.origemCod, destinoCod: m.destinoCod,
               origemLocal: m.origemLocal, destinoLocal: m.destinoLocal,
@@ -4302,6 +4346,25 @@ function montarApp(){
         dias[chave] = { ...(dias[chave] || {}), ...e.campos };
         mudou = true;
       }
+      if (mudou) await setDoc(ref, { mes, dias, atualizadoEm: new Date().toISOString() });
+    }
+  }
+
+  // tira dias do resumo mensal (usado ao remover um dia inválido)
+  async function removerResumos(entradas) {
+    const porMes = new Map();
+    for (const e of entradas) {
+      const mes = e.data.slice(0, 7);
+      if (!porMes.has(mes)) porMes.set(mes, []);
+      porMes.get(mes).push(e);
+    }
+    for (const [mes, lista] of porMes) {
+      const ref = doc(db, 'resumo_mensal', mes);
+      const snap = await getDoc(ref);
+      if (!snap.exists()) continue;
+      const dias = { ...(snap.data().dias || {}) };
+      let mudou = false;
+      for (const e of lista) if (dias[`${e.operador}|${e.data}`]) { delete dias[`${e.operador}|${e.data}`]; mudou = true; }
       if (mudou) await setDoc(ref, { mes, dias, atualizadoEm: new Date().toISOString() });
     }
   }
